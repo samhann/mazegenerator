@@ -12,6 +12,7 @@ typedef std::vector<std::vector<Edge>> Graph;
 class SpanningtreeAlgorithm {
  public:
   SpanningtreeAlgorithm();
+  SpanningtreeAlgorithm(unsigned int seed);
   virtual std::vector<std::pair<int, int>> SpanningTree(int, const Graph&) = 0;
 
  protected:

@@ -20,6 +20,7 @@ void usage(std::ostream &out) {
       << std::endl;
   out << "               [-s <size> | -w <width> -h <height>]" << std::endl;
   out << "               [-t <output type>] [-o <output prefix>]" << std::endl;
+  out << "               [-r <random seed>]" << std::endl;
   out << "               [-f <graph description file (for m=5)>]" << std::endl;
 
   out << std::endl;
@@ -66,13 +67,18 @@ void usage(std::ostream &out) {
       << "1: png output using gnuplot (.plt) intermediate " << std::endl;
   out << "  -o      "
       << "Prefix for .svg, .plt and .png outputs (default: maze)" << std::endl;
+  out << "  -r      "
+      << "Random seed for deterministic maze generation" << std::endl;
 }
 
 int main(int argc, char *argv[]) {
   std::string outputprefix = "maze", infile = "";
+  bool hasseed = false;
+  unsigned int seed = 0;
   std::map<std::string, int> optionmap{{"-m", 0},  {"-a", 0},     {"-s", 20},
                                        {"-w", 20}, {"-h", 20},    {"-o", 0},
-                                       {"-f", 0},  {"--help", 0}, {"-t", 0}};
+                                       {"-f", 0},  {"--help", 0}, {"-t", 0},
+                                       {"-r", 0}};
 
   for (int i = 1; i < argc; i++) {
     if (optionmap.find(argv[i]) == optionmap.end()) {
@@ -115,6 +121,10 @@ int main(int argc, char *argv[]) {
                 << argv[i] << "\n";
       usage(std::cerr);
       return 1;
+    }
+    if (strcmp("-r", argv[i]) == 0) {
+      hasseed = true;
+      seed = static_cast<unsigned int>(x);
     }
     optionmap[argv[i++]] = x;
   }
@@ -209,30 +219,34 @@ int main(int argc, char *argv[]) {
       return 1;
   }
 
+  if (hasseed) {
+    std::cout << "Using random seed: " << seed << "\n";
+  }
+
   switch (optionmap["-a"]) {
     case 0:
       std::cout << "Maze generation using Kruskal's algorithm\n";
-      algorithm = new Kruskal;
+      algorithm = hasseed ? new Kruskal(seed) : new Kruskal;
       break;
 
     case 1:
       std::cout << "Maze generation using Depth-first search\n";
-      algorithm = new DepthFirstSearch;
+      algorithm = hasseed ? new DepthFirstSearch(seed) : new DepthFirstSearch;
       break;
 
     case 2:
       std::cout << "Maze generation using Breadth-first search\n";
-      algorithm = new BreadthFirstSearch;
+      algorithm = hasseed ? new BreadthFirstSearch(seed) : new BreadthFirstSearch;
       break;
 
     case 3:
       std::cout << "Maze generation using Loop-erased random walk\n";
-      algorithm = new LoopErasedRandomWalk;
+      algorithm = hasseed ? new LoopErasedRandomWalk(seed) : new LoopErasedRandomWalk;
       break;
 
     case 4:
       std::cout << "Maze generation using Prim's algorithm\n";
-      algorithm = new Prim;
+      algorithm = hasseed ? new Prim(seed) : new Prim;
       break;
 
     default:

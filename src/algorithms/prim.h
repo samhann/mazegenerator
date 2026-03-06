@@ -6,6 +6,7 @@
 
 class Prim : public SpanningtreeAlgorithm {
  public:
+  using SpanningtreeAlgorithm::SpanningtreeAlgorithm;
   std::vector<std::pair<int, int>> SpanningTree(int, const Graph &);
 
  private:

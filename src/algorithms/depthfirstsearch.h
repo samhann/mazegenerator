@@ -6,6 +6,7 @@
 
 class DepthFirstSearch : public SpanningtreeAlgorithm {
  public:
+  using SpanningtreeAlgorithm::SpanningtreeAlgorithm;
   std::vector<std::pair<int, int>> SpanningTree(int, const Graph &);
   std::vector<int> Solve(int, const Graph&, int);
 
