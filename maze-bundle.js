@@ -764,8 +764,8 @@ var MazeGen = (() => {
         while ((row + 1) * (row + 2) / 2 <= rem) row++;
         col = rem - row * (row + 1) / 2;
       }
-      const dx12 = -0.5 / sz, dy12 = -Math.sqrt(3) / 2 / sz;
-      const dx23 = 1 / sz;
+      const dx12 = -0.5, dy12 = -Math.sqrt(3) / 2;
+      const dx23 = 1;
       let lx, ly;
       if (ud === 0) {
         lx = dx12 * (row + 2 / 3) + dx23 * (col + 1 / 3);
@@ -986,22 +986,26 @@ var MazeGen = (() => {
         col = rem - row * (row + 1) / 2;
       }
       const sectorBase = (sector - 2) * M_PI4 / 3;
-      let t1, t2, t3;
+      let r1, a1, r2, a2, r3, a3;
       if (ud === 0) {
-        t1 = row > 0 ? sectorBase + col * M_PI4 / 3 / row : sectorBase;
-        t2 = sectorBase + col * M_PI4 / 3 / (row + 1);
-        t3 = sectorBase + (col + 1) * M_PI4 / 3 / (row + 1);
-        const midTheta = (t1 + t2 + t3) / 3;
-        const midR = row + 2 / 3;
-        return [midR * Math.cos(midTheta), midR * Math.sin(midTheta)];
+        r1 = row;
+        a1 = row > 0 ? sectorBase + col * M_PI4 / 3 / row : sectorBase;
+        r2 = row + 1;
+        a2 = sectorBase + col * M_PI4 / 3 / (row + 1);
+        r3 = row + 1;
+        a3 = sectorBase + (col + 1) * M_PI4 / 3 / (row + 1);
       } else {
-        t1 = sectorBase + col * M_PI4 / 3 / (row + 1);
-        t2 = sectorBase + (col + 1) * M_PI4 / 3 / (row + 1);
-        t3 = sectorBase + (col + 1) * M_PI4 / 3 / (row + 2);
-        const midTheta = (t1 + t2 + t3) / 3;
-        const midR = row + 4 / 3;
-        return [midR * Math.cos(midTheta), midR * Math.sin(midTheta)];
+        r1 = row + 1;
+        a1 = sectorBase + col * M_PI4 / 3 / (row + 1);
+        r2 = row + 1;
+        a2 = sectorBase + (col + 1) * M_PI4 / 3 / (row + 1);
+        r3 = row + 2;
+        a3 = sectorBase + (col + 1) * M_PI4 / 3 / (row + 2);
       }
+      return [
+        (r1 * Math.cos(a1) + r2 * Math.cos(a2) + r3 * Math.cos(a3)) / 3,
+        (r1 * Math.sin(a1) + r2 * Math.sin(a2) + r3 * Math.sin(a3)) / 3
+      ];
     }
     getCoordinateBounds() {
       return [-this.size, -this.size, this.size, this.size];

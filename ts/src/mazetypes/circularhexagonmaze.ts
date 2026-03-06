@@ -59,24 +59,28 @@ export class CircularHexagonMaze extends HexagonalMaze {
       col = rem - (row * (row + 1)) / 2;
     }
 
-    // Compute angular midpoint from the 3 vertex angles
+    // Compute Cartesian centroid from the 3 vertex positions
     const sectorBase = (sector - 2) * M_PI / 3;
-    let t1: number, t2: number, t3: number;
+    let r1: number, a1: number, r2: number, a2: number, r3: number, a3: number;
     if (ud === 0) {
-      t1 = row > 0 ? sectorBase + col * M_PI / 3 / row : sectorBase;
-      t2 = sectorBase + col * M_PI / 3 / (row + 1);
-      t3 = sectorBase + (col + 1) * M_PI / 3 / (row + 1);
-      const midTheta = (t1 + t2 + t3) / 3;
-      const midR = row + 2 / 3;
-      return [midR * Math.cos(midTheta), midR * Math.sin(midTheta)];
+      r1 = row;
+      a1 = row > 0 ? sectorBase + col * M_PI / 3 / row : sectorBase;
+      r2 = row + 1;
+      a2 = sectorBase + col * M_PI / 3 / (row + 1);
+      r3 = row + 1;
+      a3 = sectorBase + (col + 1) * M_PI / 3 / (row + 1);
     } else {
-      t1 = sectorBase + col * M_PI / 3 / (row + 1);
-      t2 = sectorBase + (col + 1) * M_PI / 3 / (row + 1);
-      t3 = sectorBase + (col + 1) * M_PI / 3 / (row + 2);
-      const midTheta = (t1 + t2 + t3) / 3;
-      const midR = row + 4 / 3;
-      return [midR * Math.cos(midTheta), midR * Math.sin(midTheta)];
+      r1 = row + 1;
+      a1 = sectorBase + col * M_PI / 3 / (row + 1);
+      r2 = row + 1;
+      a2 = sectorBase + (col + 1) * M_PI / 3 / (row + 1);
+      r3 = row + 2;
+      a3 = sectorBase + (col + 1) * M_PI / 3 / (row + 2);
     }
+    return [
+      (r1 * Math.cos(a1) + r2 * Math.cos(a2) + r3 * Math.cos(a3)) / 3,
+      (r1 * Math.sin(a1) + r2 * Math.sin(a2) + r3 * Math.sin(a3)) / 3
+    ];
   }
 
   getCoordinateBounds(): [number, number, number, number] {

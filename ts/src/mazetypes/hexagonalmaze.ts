@@ -136,8 +136,8 @@ export class HexagonalMaze extends Maze {
       col = rem - (row * (row + 1)) / 2;
     }
 
-    const dx12 = -0.5 / sz, dy12 = -Math.sqrt(3) / 2 / sz;
-    const dx23 = 1.0 / sz;
+    const dx12 = -0.5, dy12 = -Math.sqrt(3) / 2;
+    const dx23 = 1.0;
     let lx: number, ly: number;
     if (ud === 0) {
       lx = dx12 * (row + 2 / 3) + dx23 * (col + 1 / 3);
