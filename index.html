@@ -110,6 +110,12 @@ button.secondary:hover { background: #0f3460; }
     <label>Speed</label>
     <input type="range" class="speed-slider" id="speed" min="1" max="100" value="70">
   </div>
+  <div class="control-group">
+    <label>Solution</label>
+    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:0.9em;text-transform:none;letter-spacing:0">
+      <input type="checkbox" id="showSolution"> Show
+    </label>
+  </div>
   <button class="secondary" onclick="downloadSVG()">Save SVG</button>
 </div>
 <div class="maze-container" id="output"></div>
@@ -376,13 +382,32 @@ class Maze {
     svg.appendChild(g);
     return {svg, g, scale};
   }
-  renderSVG() {
+  _renderSolution(g, scale) {
+    if (!this.getCellCenter) return;
+    for(let u=0;u<this.vertices;u++) {
+      for(const edge of this.solution[u]) {
+        const v=edge[0];
+        try {
+          const [x1,y1]=this.getCellCenter(u);
+          const [x2,y2]=this.getCellCenter(v);
+          const l=document.createElementNS('http://www.w3.org/2000/svg','line');
+          l.setAttribute('x1',x1*scale); l.setAttribute('y1',y1*scale);
+          l.setAttribute('x2',x2*scale); l.setAttribute('y2',y2*scale);
+          l.setAttribute('stroke','#e94560'); l.setAttribute('stroke-width', Math.max(2, scale/10));
+          l.setAttribute('stroke-linecap','round');
+          g.appendChild(l);
+        } catch(e) {}
+      }
+    }
+  }
+  renderSVG(showSolution) {
     const {svg, g, scale} = this._setupSVG();
     for(let i=0;i<this.vertices;i++) {
       for(const edge of this.adjacencylist[i]) {
         if(edge[0]<i) g.appendChild(edge[1].svgEl('#1a1a2e', scale));
       }
     }
+    if(showSolution) this._renderSolution(g, scale);
     return svg;
   }
   renderSVGFull() {
@@ -429,6 +454,7 @@ class RectangularMaze extends Maze {
       this.adjacencylist[this._vi(i+1,j)].push([this._vi(i,j),b]);
     }
   }
+  getCellCenter(v) { return [v % this.w + 0.5, Math.floor(v / this.w) + 0.5]; }
   getCoordinateBounds() { return [0,0,this.w,this.h]; }
 }
 
@@ -629,6 +655,7 @@ document.getElementById('mazeType').addEventListener('change', updateSizeUI);
 updateSizeUI();
 
 let lastSVG = null;
+let lastMaze = null;
 let animTimer = null;
 
 function stopAnimation() {
@@ -664,7 +691,9 @@ function generate() {
   const algo = new algoClasses[params.at](params.seed);
   maze.initializeGraph();
   maze.generateMaze(algo);
-  const svg = maze.renderSVG();
+  lastMaze = maze;
+  const showSol = document.getElementById('showSolution').checked;
+  const svg = maze.renderSVG(showSol);
   const output = document.getElementById('output');
   output.innerHTML = '';
   output.appendChild(svg);
@@ -744,6 +773,15 @@ function downloadSVG() {
   a.click();
   URL.revokeObjectURL(a.href);
 }
+
+document.getElementById('showSolution').addEventListener('change', function() {
+  if (!lastMaze) return;
+  const svg = lastMaze.renderSVG(this.checked);
+  const output = document.getElementById('output');
+  output.innerHTML = '';
+  output.appendChild(svg);
+  lastSVG = svg;
+});
 
 // Generate one on load
 generate();
