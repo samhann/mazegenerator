@@ -137,7 +137,7 @@ canvas { border-radius: 4px; }
   </div>
   <button class="btn btn-play" onclick="newGame()">New Game</button>
   <button class="btn btn-hint" onclick="showHint()">Hint</button>
-  <button class="btn btn-music" id="musicBtn" onclick="toggleMusic()">&#9835;</button>
+  <button class="btn btn-music" id="musicBtn" onclick="toggleMusic()" style="opacity:0.4">&#9835; Music</button>
 </div>
 <div class="game-area">
   <canvas id="canvas"></canvas>
@@ -171,17 +171,21 @@ let audioCtx = null, musicGain = null, musicPlaying = false;
 let musicNodes = [];
 
 function initAudio() {
-  if (audioCtx) return;
-  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  musicGain = audioCtx.createGain();
-  musicGain.gain.value = 0.12;
-  musicGain.connect(audioCtx.destination);
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    musicGain = audioCtx.createGain();
+    musicGain.gain.value = 0.12;
+    musicGain.connect(audioCtx.destination);
+  }
+  // iOS requires resume() inside a user gesture
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
 }
 
 function startMusic() {
   initAudio();
   stopMusicNodes();
-  if (audioCtx.state === 'suspended') audioCtx.resume();
 
   // Simple chiptune loop using square waves
   const bpm = 140, beatLen = 60 / bpm;
@@ -239,6 +243,7 @@ function stopMusic() {
 }
 
 function toggleMusic() {
+  initAudio(); // ensure AudioContext created on user gesture (iOS)
   if (musicPlaying) stopMusic(); else startMusic();
 }
 
@@ -275,6 +280,9 @@ let enemies = [];
 let moveCount = 0;
 let timerStart = 0, timerInterval = null;
 let gameOver = false, gameWon = false;
+let gameStarted = false; // enemies wait until first input
+let enemyTickCounter = 0; // enemies move every N ticks
+const ENEMY_SPEED = 2; // enemies move once per this many ticks (higher = slower)
 let hintTimeout = null, showingHint = false;
 let gameTickInterval = null;
 let passable = [];
@@ -459,6 +467,21 @@ function draw() {
     ctx.fill();
   }
 
+  // "Ready" prompt before game starts
+  if (!gameStarted && !gameOver && !gameWon) {
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#fff';
+    ctx.font = `bold ${Math.max(14, cw * 0.8)}px sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('READY', canvas.width / 2, canvas.height / 2 - cw * 0.6);
+    ctx.font = `${Math.max(10, cw * 0.45)}px sans-serif`;
+    ctx.globalAlpha = 0.5 + 0.3 * Math.sin(Date.now() / 400);
+    ctx.fillText('Swipe or press arrow to start', canvas.width / 2, canvas.height / 2 + cw * 0.5);
+    ctx.globalAlpha = 1;
+    ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
+  }
+
   if (!gameOver && !gameWon) requestAnimationFrame(draw);
 }
 
@@ -486,7 +509,7 @@ function drawSolutionHint(theme) {
 const TICK_MS = 180;
 
 function gameTick() {
-  if (gameOver || gameWon) return;
+  if (gameOver || gameWon || !gameStarted) return;
 
   // Move player in current direction (continuous)
   if (playerDir && canMove(playerRow, playerCol, playerDir)) {
@@ -498,12 +521,16 @@ function gameTick() {
     playMoveSound();
   }
 
-  // Move enemies toward player
-  for (const enemy of enemies) {
-    const next = bfsNextStep(enemy.row, enemy.col, playerRow, playerCol);
-    if (next) {
-      enemy.row = next.row;
-      enemy.col = next.col;
+  // Move enemies toward player (slower — only every ENEMY_SPEED ticks)
+  enemyTickCounter++;
+  if (enemyTickCounter >= ENEMY_SPEED) {
+    enemyTickCounter = 0;
+    for (const enemy of enemies) {
+      const next = bfsNextStep(enemy.row, enemy.col, playerRow, playerCol);
+      if (next) {
+        enemy.row = next.row;
+        enemy.col = next.col;
+      }
     }
   }
 
@@ -527,6 +554,11 @@ function checkCollision() {
 
 function setDirection(dir) {
   if (gameOver || gameWon) return;
+  if (!gameStarted) {
+    gameStarted = true;
+    timerStart = Date.now();
+    timerInterval = setInterval(updateTimer, 200);
+  }
   playerDir = dir;
 }
 
@@ -604,7 +636,8 @@ function newGame() {
   width = size; height = size;
   playerRow = 0; playerCol = 0; playerDir = null;
   goalRow = height - 1; goalCol = width - 1;
-  moveCount = 0; gameOver = false; gameWon = false; showingHint = false;
+  moveCount = 0; gameOver = false; gameWon = false; gameStarted = false; showingHint = false;
+  enemyTickCounter = 0;
   document.getElementById('moves').textContent = '0';
 
   const seed = (Math.random() * 0xffffffff) >>> 0;
@@ -624,15 +657,12 @@ function newGame() {
   playerAnimX = playerCol * cellSize + cellSize / 2;
   playerAnimY = playerRow * cellSize + cellSize / 2;
 
-  timerStart = Date.now();
-  timerInterval = setInterval(updateTimer, 200);
   document.getElementById('timer').textContent = '0:00';
 
-  // Start game tick
+  // Start game tick (but enemies wait for gameStarted)
   gameTickInterval = setInterval(gameTick, TICK_MS);
 
-  // Start music if user already enabled it
-  initAudio();
+  // Restart music if it was playing
   if (musicPlaying) startMusic();
 
   draw();
