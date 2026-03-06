@@ -92,18 +92,6 @@ button.secondary:hover { background: #0f3460; }
       <option value="4">Prim's</option>
     </select>
   </div>
-  <div class="control-group" id="sizeGroup">
-    <label>Size</label>
-    <div class="size-row">
-      <input type="number" id="width" value="15" min="2" max="80">
-      <span id="timesSign">&times;</span>
-      <input type="number" id="height" value="15" min="2" max="80">
-    </div>
-  </div>
-  <div class="control-group">
-    <label>Seed</label>
-    <input type="text" id="seed" placeholder="random">
-  </div>
   <div class="control-group">
     <label>Theme</label>
     <select id="theme">
@@ -116,6 +104,18 @@ button.secondary:hover { background: #0f3460; }
       <option value="parchment">Parchment</option>
       <option value="midnight">Midnight</option>
     </select>
+  </div>
+  <div class="control-group" id="sizeGroup">
+    <label>Size</label>
+    <div class="size-row">
+      <input type="number" id="width" value="15" min="2" max="80">
+      <span id="timesSign">&times;</span>
+      <input type="number" id="height" value="15" min="2" max="80">
+    </div>
+  </div>
+  <div class="control-group">
+    <label>Seed</label>
+    <input type="text" id="seed" placeholder="random">
   </div>
   <button onclick="generate()">Generate</button>
   <button onclick="animateMaze()" style="background:#16213e">Animate</button>
@@ -133,7 +133,7 @@ button.secondary:hover { background: #0f3460; }
 </div>
 <div class="maze-container" id="output"></div>
 
-<script src="maze-bundle.js?v=4"></script>
+<script src="maze-bundle.js?v=5"></script>
 <script>
 // All maze logic imported from shared TS source via MazeGen global
 const { RectangularMaze, HexagonalMaze, HoneyCombMaze, CircularMaze,
