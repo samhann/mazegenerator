@@ -21,7 +21,7 @@ header {
 header h1 { font-size: 1.1em; font-weight: 600; }
 .header-stats { display: flex; gap: 16px; font-size: 0.85em; }
 .stat { display: flex; align-items: center; gap: 4px; }
-.stat-label { opacity: 0.6; font-size: 0.8em; text-transform: uppercase; }
+.stat-label { opacity: 0.6; font-size: 0.8em; text-transform: uppercase; letter-spacing: 0.5px; }
 .stat-value { font-weight: 700; font-variant-numeric: tabular-nums; }
 .game-area {
   flex: 1; display: flex; align-items: center; justify-content: center;
@@ -110,14 +110,15 @@ canvas { border-radius: 4px; }
 </header>
 <div class="controls-bar">
   <div class="ctrl-group">
-    <label>Size</label>
-    <select id="size">
-      <option value="5">5 &times; 5 (Easy)</option>
-      <option value="8">8 &times; 8</option>
-      <option value="10" selected>10 &times; 10</option>
-      <option value="15">15 &times; 15</option>
-      <option value="20">20 &times; 20 (Hard)</option>
+    <label>Shape</label>
+    <select id="shape">
+      <option value="hex" selected>Hexagonal</option>
+      <option value="rect">Rectangular</option>
     </select>
+  </div>
+  <div class="ctrl-group">
+    <label>Size</label>
+    <select id="size"></select>
   </div>
   <div class="ctrl-group">
     <label>Theme</label>
@@ -168,7 +169,27 @@ canvas { border-radius: 4px; }
 
 <script src="maze-bundle.js?v=5"></script>
 <script>
-const { RectangularMaze, Kruskal, getTheme } = MazeGen;
+const { RectangularMaze, HexagonalMaze, Kruskal, getTheme } = MazeGen;
+
+// ===== Size options per shape =====
+const SIZE_OPTIONS = {
+  hex:  [{v:3,l:'3 (Easy)'},{v:4,l:'4'},{v:5,l:'5 (Medium)'},{v:7,l:'7 (Hard)'}],
+  rect: [{v:5,l:'5\u00d75 (Easy)'},{v:8,l:'8\u00d78'},{v:10,l:'10\u00d710'},{v:15,l:'15\u00d715'},{v:20,l:'20\u00d720 (Hard)'}],
+};
+function updateSizeOptions() {
+  const sel = document.getElementById('size');
+  const shape = document.getElementById('shape').value;
+  const opts = SIZE_OPTIONS[shape];
+  sel.innerHTML = '';
+  opts.forEach((o, i) => {
+    const opt = document.createElement('option');
+    opt.value = o.v; opt.textContent = o.l;
+    if (i === Math.min(2, opts.length - 1)) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+document.getElementById('shape').addEventListener('change', () => { updateSizeOptions(); newGame(); });
+updateSizeOptions();
 
 // ===== Web Audio Music Engine =====
 let audioCtx = null, musicGain = null, musicPlaying = false;
@@ -181,52 +202,35 @@ function initAudio() {
     musicGain.gain.value = 0.12;
     musicGain.connect(audioCtx.destination);
   }
-  // iOS requires resume() inside a user gesture
-  if (audioCtx.state === 'suspended') {
-    audioCtx.resume();
-  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
 }
 
 function startMusic() {
   initAudio();
   stopMusicNodes();
-
-  // Simple chiptune loop using square waves
   const bpm = 140, beatLen = 60 / bpm;
   const now = audioCtx.currentTime + 0.05;
-
-  // Bass line (loop every 8 beats)
-  const bassNotes = [130.81, 130.81, 164.81, 164.81, 110.00, 110.00, 146.83, 146.83]; // C3 C3 E3 E3 A2 A2 D3 D3
-  // Melody (loop every 8 beats)
-  const melodyNotes = [523.25, 587.33, 659.25, 523.25, 493.88, 440.00, 493.88, 523.25]; // C5 D5 E5 C5 B4 A4 B4 C5
-
+  const bassNotes = [130.81, 130.81, 164.81, 164.81, 110.00, 110.00, 146.83, 146.83];
+  const melodyNotes = [523.25, 587.33, 659.25, 523.25, 493.88, 440.00, 493.88, 523.25];
   const loopLen = 8 * beatLen;
-  const totalLoops = 60; // ~3.5 minutes of music
-
-  for (let loop = 0; loop < totalLoops; loop++) {
+  for (let loop = 0; loop < 60; loop++) {
     const loopStart = now + loop * loopLen;
-
     for (let i = 0; i < 8; i++) {
       const t = loopStart + i * beatLen;
-      // Bass
       const bass = audioCtx.createOscillator();
-      bass.type = 'square';
-      bass.frequency.value = bassNotes[i];
-      const bassGain = audioCtx.createGain();
-      bassGain.gain.setValueAtTime(0.3, t);
-      bassGain.gain.exponentialRampToValueAtTime(0.01, t + beatLen * 0.8);
-      bass.connect(bassGain); bassGain.connect(musicGain);
+      bass.type = 'square'; bass.frequency.value = bassNotes[i];
+      const bg = audioCtx.createGain();
+      bg.gain.setValueAtTime(0.3, t);
+      bg.gain.exponentialRampToValueAtTime(0.01, t + beatLen * 0.8);
+      bass.connect(bg); bg.connect(musicGain);
       bass.start(t); bass.stop(t + beatLen * 0.85);
       musicNodes.push(bass);
-
-      // Melody (offset by half beat for groove)
       const mel = audioCtx.createOscillator();
-      mel.type = 'square';
-      mel.frequency.value = melodyNotes[i];
-      const melGain = audioCtx.createGain();
-      melGain.gain.setValueAtTime(0.15, t + beatLen * 0.5);
-      melGain.gain.exponentialRampToValueAtTime(0.01, t + beatLen * 1.2);
-      mel.connect(melGain); melGain.connect(musicGain);
+      mel.type = 'square'; mel.frequency.value = melodyNotes[i];
+      const mg = audioCtx.createGain();
+      mg.gain.setValueAtTime(0.15, t + beatLen * 0.5);
+      mg.gain.exponentialRampToValueAtTime(0.01, t + beatLen * 1.2);
+      mel.connect(mg); mg.connect(musicGain);
       mel.start(t + beatLen * 0.5); mel.stop(t + beatLen * 1.3);
       musicNodes.push(mel);
     }
@@ -235,169 +239,188 @@ function startMusic() {
   document.getElementById('musicBtn').style.opacity = '1';
 }
 
-function stopMusicNodes() {
-  musicNodes.forEach(n => { try { n.stop(); } catch(_){} });
-  musicNodes = [];
-}
+function stopMusicNodes() { musicNodes.forEach(n => { try { n.stop(); } catch(_){} }); musicNodes = []; }
+function stopMusic() { stopMusicNodes(); musicPlaying = false; document.getElementById('musicBtn').style.opacity = '0.4'; }
+function toggleMusic() { initAudio(); if (musicPlaying) stopMusic(); else startMusic(); }
 
-function stopMusic() {
-  stopMusicNodes();
-  musicPlaying = false;
-  document.getElementById('musicBtn').style.opacity = '0.4';
-}
-
-function toggleMusic() {
-  initAudio(); // ensure AudioContext created on user gesture (iOS)
-  if (musicPlaying) stopMusic(); else startMusic();
-}
-
-// Quick sound effects
 function playSound(freq, dur, type) {
   if (!audioCtx) return;
-  const o = audioCtx.createOscillator();
-  const g = audioCtx.createGain();
-  o.type = type || 'square';
-  o.frequency.value = freq;
+  const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+  o.type = type || 'square'; o.frequency.value = freq;
   g.gain.setValueAtTime(0.15, audioCtx.currentTime);
   g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + dur);
   o.connect(g); g.connect(audioCtx.destination);
   o.start(); o.stop(audioCtx.currentTime + dur);
 }
-
 function playMoveSound() { playSound(440, 0.05, 'sine'); }
-function playWinSound() {
-  [523, 659, 784, 1047].forEach((f, i) => {
-    setTimeout(() => playSound(f, 0.2, 'square'), i * 120);
-  });
-}
-function playDeathSound() {
-  [400, 300, 200, 100].forEach((f, i) => {
-    setTimeout(() => playSound(f, 0.25, 'sawtooth'), i * 100);
-  });
-}
+function playWinSound() { [523,659,784,1047].forEach((f,i) => setTimeout(() => playSound(f,0.2,'square'), i*120)); }
+function playDeathSound() { [400,300,200,100].forEach((f,i) => setTimeout(() => playSound(f,0.25,'sawtooth'), i*100)); }
 
 // ===== Game State =====
-let maze, width, height, cellSize;
-let playerRow, playerCol, playerDir;
-let goalRow, goalCol;
+let maze, totalVertices;
+let playerVertex, goalVertex;
 let enemies = [];
 let moveCount = 0;
 let timerStart = 0, timerInterval = null;
 let gameOver = false, gameWon = false;
-let gameStarted = false; // enemies wait until first input
-let enemyTickCounter = 0; // enemies move every N ticks
-let enemySpeed = 4; // enemies move once per this many ticks (higher = slower)
-const ENEMY_RANDOM_CHANCE = 0.4; // 40% chance enemy makes a random move instead of optimal
+let gameStarted = false;
+let enemyTickCounter = 0, enemySpeed = 4;
+const ENEMY_RANDOM_CHANCE = 0.4;
 let hintTimeout = null, showingHint = false;
 let gameTickInterval = null;
-let passable = [];
 let animFrame = 0;
 
-// Smooth animation positions (in pixel coords)
-let playerAnimX, playerAnimY;
-let enemyAnims = []; // [{x, y}]
+// Graph-based data
+let passableNeighbors = []; // passableNeighbors[v] = [neighbor vertices]
+let cellPos = [];           // cellPos[v] = {x, y} in canvas coords
+let wallSegments = [];      // [{x1,y1,x2,y2}] in canvas coords for LineBorder walls
+let arcSegments = [];       // [{cx,cy,r,t1,t2}] in canvas coords for ArcBorder walls
+
+// Movement (direction queuing / Pac-Man style)
+let inputAngle = null;      // queued direction from input (radians)
+let moveAngle = null;       // direction currently moving (radians)
+let lastMoveAngle = 0;      // for pac-man mouth rendering
+
+// Smooth animation
+let playerAnimX = 0, playerAnimY = 0;
+let enemyAnims = [];
 const LERP_SPEED = 0.25;
+
+// Coordinate transform
+let txScale = 1, txOffX = 0, txMaxY = 0, txPad = 1;
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 
-function vertexIndex(r, c) { return r * width + c; }
+function toCanvasX(mx) { return (mx - txOffX + txPad) * txScale; }
+function toCanvasY(my) { return (txMaxY + txPad - my) * txScale; }
 
-function buildPassable() {
-  passable = [];
-  for (let r = 0; r < height; r++) {
-    passable[r] = [];
-    for (let c = 0; c < width; c++) {
-      const v = vertexIndex(r, c);
-      const walls = maze.adjacencylist[v];
-      const hasWallTo = (nv) => walls.some(e => e[0] === nv);
-      passable[r][c] = {
-        up:    r > 0          && !hasWallTo(vertexIndex(r - 1, c)),
-        down:  r < height - 1 && !hasWallTo(vertexIndex(r + 1, c)),
-        left:  c > 0          && !hasWallTo(vertexIndex(r, c - 1)),
-        right: c < width - 1  && !hasWallTo(vertexIndex(r, c + 1)),
-      };
+function angleDiff(a, b) {
+  let d = a - b;
+  while (d > Math.PI) d -= 2 * Math.PI;
+  while (d < -Math.PI) d += 2 * Math.PI;
+  return d;
+}
+
+// ===== Build game graph from maze =====
+function buildGameGraph() {
+  totalVertices = maze.vertices;
+  const [xmin, ymin, xmax, ymax] = maze.getCoordinateBounds();
+  txOffX = xmin; txMaxY = ymax; txPad = 1;
+  const w = xmax - xmin + 2 * txPad, h = ymax - ymin + 2 * txPad;
+  const area = document.querySelector('.game-area');
+  const maxW = area.clientWidth - 16, maxH = area.clientHeight - 16;
+  txScale = Math.min(maxW / w, maxH / h);
+  canvas.width = Math.round(w * txScale);
+  canvas.height = Math.round(h * txScale);
+
+  // Cell positions in canvas coords
+  cellPos = [];
+  for (let v = 0; v < totalVertices; v++) {
+    try {
+      const [mx, my] = maze.getCellCenter(v);
+      cellPos[v] = { x: toCanvasX(mx), y: toCanvasY(my) };
+    } catch (_) {
+      cellPos[v] = { x: 0, y: 0 };
+    }
+  }
+
+  // Save all original neighbors before generation removes edges
+  // (must be called BEFORE generateMaze)
+  // Actually this is called after, so we use a different approach:
+  // passableNeighbors is built in newGame before this function
+}
+
+function buildPassability() {
+  // Save full neighbor list, generate maze, then compute passability
+  // This is called from newGame with the right sequencing
+}
+
+function buildWallSegments() {
+  wallSegments = [];
+  arcSegments = [];
+  const seen = new Set();
+  for (let v = 0; v < totalVertices; v++) {
+    for (const edge of maze.adjacencylist[v]) {
+      const border = edge[1];
+      if (seen.has(border)) continue;
+      seen.add(border);
+      if (border.r !== undefined) {
+        // ArcBorder
+        const cx = toCanvasX(border.cx);
+        const cy = toCanvasY(border.cy);
+        const r = border.r * txScale;
+        arcSegments.push({ cx, cy, r, t1: -border.theta2, t2: -border.theta1 });
+      } else {
+        // LineBorder
+        wallSegments.push({
+          x1: toCanvasX(border.x1), y1: toCanvasY(border.y1),
+          x2: toCanvasX(border.x2), y2: toCanvasY(border.y2)
+        });
+      }
     }
   }
 }
 
-// BFS to find next step from (sr,sc) toward (tr,tc)
-function bfsNextStep(sr, sc, tr, tc) {
-  if (sr === tr && sc === tc) return null;
-  const visited = new Uint8Array(width * height);
-  const parent = new Int32Array(width * height).fill(-1);
-  const queue = [sr * width + sc];
-  visited[sr * width + sc] = 1;
-  const target = tr * width + tc;
-  const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
-  const dirNames = ['up','down','left','right'];
+// ===== Movement =====
+function findNeighborInDirection(vertex, angle) {
+  const neighbors = passableNeighbors[vertex];
+  if (!neighbors || neighbors.length === 0) return null;
+  let best = -1, bestDiff = Math.PI / 2; // max 90 degree deviation
+  for (const n of neighbors) {
+    const dx = cellPos[n].x - cellPos[vertex].x;
+    const dy = cellPos[n].y - cellPos[vertex].y;
+    const a = Math.atan2(dy, dx);
+    const diff = Math.abs(angleDiff(angle, a));
+    if (diff < bestDiff) { bestDiff = diff; best = n; }
+  }
+  return best >= 0 ? best : null;
+}
 
+// ===== BFS (graph-based) =====
+function bfsNextStep(fromV, toV) {
+  if (fromV === toV) return null;
+  const visited = new Uint8Array(totalVertices);
+  const parent = new Int32Array(totalVertices).fill(-1);
+  const queue = [fromV];
+  visited[fromV] = 1;
   while (queue.length > 0) {
-    const cur = queue.shift();
-    const cr = Math.floor(cur / width), cc = cur % width;
-    if (cur === target) {
-      // Trace back to find first step
-      let v = target;
-      while (parent[v] !== sr * width + sc && parent[v] !== -1) v = parent[v];
-      if (parent[v] === -1) return null;
-      const nr = Math.floor(v / width), nc = v % width;
-      return { row: nr, col: nc };
+    const v = queue.shift();
+    if (v === toV) {
+      let u = toV;
+      while (parent[u] !== fromV && parent[u] !== -1) u = parent[u];
+      return parent[u] === -1 ? null : u;
     }
-    for (let d = 0; d < 4; d++) {
-      if (!passable[cr][cc][dirNames[d]]) continue;
-      const nr = cr + dirs[d][0], nc = cc + dirs[d][1];
-      const nv = nr * width + nc;
-      if (!visited[nv]) {
-        visited[nv] = 1;
-        parent[nv] = cur;
-        queue.push(nv);
+    for (const n of passableNeighbors[v]) {
+      if (!visited[n]) {
+        visited[n] = 1;
+        parent[n] = v;
+        queue.push(n);
       }
     }
   }
   return null;
 }
 
-function canMove(r, c, dir) {
-  return passable[r] && passable[r][c] && passable[r][c][dir];
+function randomPassableNeighbor(vertex) {
+  const n = passableNeighbors[vertex];
+  if (!n || n.length === 0) return null;
+  return n[Math.floor(Math.random() * n.length)];
 }
 
-// Get a random passable neighbor for an enemy (dumb move)
-function randomNeighbor(r, c) {
-  const dirs = ['up', 'down', 'left', 'right'];
-  const deltas = { up: [-1,0], down: [1,0], left: [0,-1], right: [0,1] };
-  const options = dirs.filter(d => canMove(r, c, d));
-  if (options.length === 0) return null;
-  const pick = options[Math.floor(Math.random() * options.length)];
-  const [dr, dc] = deltas[pick];
-  return { row: r + dr, col: c + dc };
-}
-
-function calcCellSize() {
-  const area = document.querySelector('.game-area');
-  const maxW = area.clientWidth - 16;
-  const maxH = area.clientHeight - 16;
-  cellSize = Math.floor(Math.min(maxW / width, maxH / height));
-  cellSize = Math.max(cellSize, 10);
-  canvas.width = width * cellSize;
-  canvas.height = height * cellSize;
-}
-
+// ===== Rendering =====
 function lerp(a, b, t) { return a + (b - a) * t; }
 
 function draw() {
   const theme = getTheme(document.getElementById('theme').value);
-  const cw = cellSize;
   animFrame++;
 
   // Lerp positions
-  const targetPX = playerCol * cw + cw / 2;
-  const targetPY = playerRow * cw + cw / 2;
-  playerAnimX = lerp(playerAnimX, targetPX, LERP_SPEED);
-  playerAnimY = lerp(playerAnimY, targetPY, LERP_SPEED);
-
+  const tpx = cellPos[playerVertex].x, tpy = cellPos[playerVertex].y;
+  playerAnimX = lerp(playerAnimX, tpx, LERP_SPEED);
+  playerAnimY = lerp(playerAnimY, tpy, LERP_SPEED);
   for (let i = 0; i < enemies.length; i++) {
-    const ex = enemies[i].col * cw + cw / 2;
-    const ey = enemies[i].row * cw + cw / 2;
+    const ex = cellPos[enemies[i].vertex].x, ey = cellPos[enemies[i].vertex].y;
     enemyAnims[i].x = lerp(enemyAnims[i].x, ex, LERP_SPEED);
     enemyAnims[i].y = lerp(enemyAnims[i].y, ey, LERP_SPEED);
   }
@@ -411,48 +434,42 @@ function draw() {
 
   // Walls
   ctx.strokeStyle = theme.wallColor;
-  ctx.lineWidth = Math.max(2, cw / 10);
+  ctx.lineWidth = Math.max(2, txScale / 10);
   ctx.lineCap = 'round';
-  for (let r = 0; r < height; r++) {
-    for (let c = 0; c < width; c++) {
-      const x = c * cw, y = r * cw;
-      const p = passable[r][c];
-      if (!p.up)   { ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + cw, y); ctx.stroke(); }
-      if (!p.left) { ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + cw); ctx.stroke(); }
-      if (c === width - 1)  { ctx.beginPath(); ctx.moveTo(x + cw, y); ctx.lineTo(x + cw, y + cw); ctx.stroke(); }
-      if (r === height - 1) { ctx.beginPath(); ctx.moveTo(x, y + cw); ctx.lineTo(x + cw, y + cw); ctx.stroke(); }
-    }
+  for (const w of wallSegments) {
+    ctx.beginPath(); ctx.moveTo(w.x1, w.y1); ctx.lineTo(w.x2, w.y2); ctx.stroke();
+  }
+  for (const a of arcSegments) {
+    ctx.beginPath(); ctx.arc(a.cx, a.cy, a.r, a.t1, a.t2); ctx.stroke();
   }
 
-  // Goal marker (pulsing)
-  const gx = goalCol * cw + cw / 2, gy = goalRow * cw + cw / 2;
+  // Goal (pulsing)
+  const gx = cellPos[goalVertex].x, gy = cellPos[goalVertex].y;
+  const gr = Math.max(4, txScale * 0.3);
   ctx.fillStyle = theme.solutionColor;
   ctx.globalAlpha = 0.3 + 0.15 * Math.sin(Date.now() / 300);
-  ctx.beginPath(); ctx.arc(gx, gy, cw * 0.35, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(gx, gy, gr * 1.2, 0, Math.PI * 2); ctx.fill();
   ctx.globalAlpha = 1;
   ctx.fillStyle = theme.solutionColor;
-  ctx.beginPath(); ctx.arc(gx, gy, cw * 0.15, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(gx, gy, gr * 0.5, 0, Math.PI * 2); ctx.fill();
 
-  // Enemies (drawn as spooky triangles/ghosts)
+  // Enemies (ghosts)
+  const ghostR = Math.max(4, txScale * 0.3);
   for (let i = 0; i < enemies.length; i++) {
     const ex = enemyAnims[i].x, ey = enemyAnims[i].y;
-    const sz = cw * 0.35;
-    // Ghost body
+    const sz = ghostR;
     ctx.fillStyle = enemies[i].color;
     ctx.shadowColor = enemies[i].color;
-    ctx.shadowBlur = cw * 0.3;
+    ctx.shadowBlur = sz;
     ctx.beginPath();
-    ctx.arc(ex, ey - sz * 0.2, sz, Math.PI, 0); // top dome
+    ctx.arc(ex, ey - sz * 0.2, sz, Math.PI, 0);
     ctx.lineTo(ex + sz, ey + sz * 0.5);
-    // Wavy bottom
-    const waves = 3;
-    for (let w = 0; w < waves; w++) {
-      const wx1 = ex + sz - (w * 2 + 1) * sz / waves;
-      const wx2 = ex + sz - (w * 2 + 2) * sz / waves;
+    for (let w = 0; w < 3; w++) {
+      const wx1 = ex + sz - (w * 2 + 1) * sz / 3;
+      const wx2 = ex + sz - (w * 2 + 2) * sz / 3;
       ctx.quadraticCurveTo(wx1, ey + sz * 0.9, wx2, ey + sz * 0.5);
     }
-    ctx.closePath();
-    ctx.fill();
+    ctx.closePath(); ctx.fill();
     ctx.shadowBlur = 0;
     // Eyes
     ctx.fillStyle = '#fff';
@@ -463,37 +480,36 @@ function draw() {
     ctx.beginPath(); ctx.arc(ex + sz * 0.35, ey - sz * 0.2, sz * 0.1, 0, Math.PI * 2); ctx.fill();
   }
 
-  // Player (glowing circle with direction indicator)
+  // Player (pac-man)
   const pColor = theme.breakColor || '#00ffff';
+  const pr = Math.max(4, txScale * 0.25);
   ctx.fillStyle = pColor;
   ctx.shadowColor = pColor;
-  ctx.shadowBlur = cw * 0.5;
-  ctx.beginPath(); ctx.arc(playerAnimX, playerAnimY, cw * 0.3, 0, Math.PI * 2); ctx.fill();
+  ctx.shadowBlur = pr * 1.5;
+  ctx.beginPath(); ctx.arc(playerAnimX, playerAnimY, pr, 0, Math.PI * 2); ctx.fill();
   ctx.shadowBlur = 0;
-  // Mouth (pac-man style based on direction)
-  if (playerDir) {
+  // Mouth
+  if (moveAngle !== null) {
     ctx.fillStyle = theme.backgroundColor;
-    const angles = { right: 0, down: Math.PI/2, left: Math.PI, up: -Math.PI/2 };
-    const a = angles[playerDir] || 0;
     const mouth = 0.3 + 0.1 * Math.sin(animFrame * 0.3);
     ctx.beginPath();
     ctx.moveTo(playerAnimX, playerAnimY);
-    ctx.arc(playerAnimX, playerAnimY, cw * 0.31, a - mouth, a + mouth);
-    ctx.closePath();
-    ctx.fill();
+    ctx.arc(playerAnimX, playerAnimY, pr * 1.05, lastMoveAngle - mouth, lastMoveAngle + mouth);
+    ctx.closePath(); ctx.fill();
   }
 
-  // "Ready" prompt before game starts
+  // Ready screen
   if (!gameStarted && !gameOver && !gameWon) {
     ctx.fillStyle = 'rgba(0,0,0,0.5)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = '#fff';
-    ctx.font = `bold ${Math.max(14, cw * 0.8)}px sans-serif`;
+    const fontSize = Math.max(14, Math.min(canvas.width, canvas.height) * 0.08);
+    ctx.font = `bold ${fontSize}px sans-serif`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText('READY', canvas.width / 2, canvas.height / 2 - cw * 0.6);
-    ctx.font = `${Math.max(10, cw * 0.45)}px sans-serif`;
+    ctx.fillText('READY', canvas.width / 2, canvas.height / 2 - fontSize * 0.8);
+    ctx.font = `${fontSize * 0.55}px sans-serif`;
     ctx.globalAlpha = 0.5 + 0.3 * Math.sin(Date.now() / 400);
-    ctx.fillText('Swipe or press arrow to start', canvas.width / 2, canvas.height / 2 + cw * 0.5);
+    ctx.fillText('Swipe or press arrow to start', canvas.width / 2, canvas.height / 2 + fontSize * 0.5);
     ctx.globalAlpha = 1;
     ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
   }
@@ -502,87 +518,89 @@ function draw() {
 }
 
 function drawSolutionHint(theme) {
-  const cw = cellSize;
   ctx.strokeStyle = theme.solutionColor;
   ctx.globalAlpha = 0.35;
-  ctx.lineWidth = Math.max(2, cw / 5);
+  ctx.lineWidth = Math.max(2, txScale / 5);
   ctx.lineCap = 'round';
-  for (let u = 0; u < maze.vertices; u++) {
+  for (let u = 0; u < totalVertices; u++) {
+    if (!maze.solution[u]) continue;
     for (const edge of maze.solution[u]) {
       const v = edge[0];
-      const r1 = Math.floor(u / width), c1 = u % width;
-      const r2 = Math.floor(v / width), c2 = v % width;
       ctx.beginPath();
-      ctx.moveTo(c1 * cw + cw / 2, r1 * cw + cw / 2);
-      ctx.lineTo(c2 * cw + cw / 2, r2 * cw + cw / 2);
+      ctx.moveTo(cellPos[u].x, cellPos[u].y);
+      ctx.lineTo(cellPos[v].x, cellPos[v].y);
       ctx.stroke();
     }
   }
   ctx.globalAlpha = 1;
 }
 
-// ===== Game Tick (movement + enemy AI) =====
+// ===== Game Tick =====
 const TICK_MS = 180;
 
 function gameTick() {
   if (gameOver || gameWon || !gameStarted) return;
 
-  // Move player in current direction (continuous)
-  if (playerDir && canMove(playerRow, playerCol, playerDir)) {
-    const deltas = { up: [-1,0], down: [1,0], left: [0,-1], right: [0,1] };
-    const [dr, dc] = deltas[playerDir];
-    playerRow += dr; playerCol += dc;
+  // Move player: try queued direction first, then continue in current direction
+  let moved = false;
+  if (inputAngle !== null) {
+    const target = findNeighborInDirection(playerVertex, inputAngle);
+    if (target !== null) {
+      const dx = cellPos[target].x - cellPos[playerVertex].x;
+      const dy = cellPos[target].y - cellPos[playerVertex].y;
+      lastMoveAngle = Math.atan2(dy, dx);
+      moveAngle = inputAngle;
+      playerVertex = target;
+      moved = true;
+    }
+  }
+  if (!moved && moveAngle !== null) {
+    const target = findNeighborInDirection(playerVertex, moveAngle);
+    if (target !== null) {
+      const dx = cellPos[target].x - cellPos[playerVertex].x;
+      const dy = cellPos[target].y - cellPos[playerVertex].y;
+      lastMoveAngle = Math.atan2(dy, dx);
+      playerVertex = target;
+      moved = true;
+    }
+  }
+  if (moved) {
     moveCount++;
     document.getElementById('moves').textContent = moveCount;
     playMoveSound();
   }
 
-  // Move enemies toward player (much slower, sometimes random)
+  // Enemy AI
   enemyTickCounter++;
   if (enemyTickCounter >= enemySpeed) {
     enemyTickCounter = 0;
     for (const enemy of enemies) {
       let next;
       if (Math.random() < ENEMY_RANDOM_CHANCE) {
-        // Dumb random move
-        next = randomNeighbor(enemy.row, enemy.col);
+        next = randomPassableNeighbor(enemy.vertex);
       } else {
-        // Smart BFS move
-        next = bfsNextStep(enemy.row, enemy.col, playerRow, playerCol);
+        next = bfsNextStep(enemy.vertex, playerVertex);
       }
-      if (next) {
-        enemy.row = next.row;
-        enemy.col = next.col;
-      }
+      if (next !== null && next !== undefined) enemy.vertex = next;
     }
   }
 
-  // Check collision
-  checkCollision();
-
-  // Check win
-  if (playerRow === goalRow && playerCol === goalCol) {
-    winGame();
-  }
-}
-
-function checkCollision() {
+  // Collision
   for (const enemy of enemies) {
-    if (enemy.row === playerRow && enemy.col === playerCol) {
-      loseGame();
-      return;
-    }
+    if (enemy.vertex === playerVertex) { loseGame(); return; }
   }
+  // Win
+  if (playerVertex === goalVertex) winGame();
 }
 
-function setDirection(dir) {
+function setInputAngle(angle) {
   if (gameOver || gameWon) return;
   if (!gameStarted) {
     gameStarted = true;
     timerStart = Date.now();
     timerInterval = setInterval(updateTimer, 200);
   }
-  playerDir = dir;
+  inputAngle = angle;
 }
 
 function winGame() {
@@ -608,17 +626,15 @@ function loseGame() {
   document.getElementById('endTitle').textContent = 'Caught!';
   document.getElementById('winTime').textContent = document.getElementById('timer').textContent;
   document.getElementById('winMoves').textContent = moveCount;
-  // Flash player red
   setTimeout(() => {
-    draw(); // one last frame
+    draw();
     document.getElementById('winOverlay').classList.add('show');
   }, 500);
 }
 
 function updateTimer() {
   const elapsed = Math.floor((Date.now() - timerStart) / 1000);
-  const m = Math.floor(elapsed / 60);
-  const s = elapsed % 60;
+  const m = Math.floor(elapsed / 60), s = elapsed % 60;
   document.getElementById('timer').textContent = m + ':' + String(s).padStart(2, '0');
 }
 
@@ -629,106 +645,146 @@ function showHint() {
   hintTimeout = setTimeout(() => { showingHint = false; }, 2000);
 }
 
+// ===== Enemy Spawning =====
 function spawnEnemies(count) {
   enemies = [];
   enemyAnims = [];
   const colors = ['#ff4444', '#ff8800', '#ff44ff'];
-  // Spawn enemies in the middle region of the maze, away from player
-  const midR = Math.floor(height / 2), midC = Math.floor(width / 2);
-  const offsets = [
-    [0, 0],
-    [-Math.floor(height / 4), Math.floor(width / 4)],
-    [Math.floor(height / 4), -Math.floor(width / 4)],
-  ];
-  for (let i = 0; i < count; i++) {
-    const or = midR + (offsets[i] ? offsets[i][0] : 0);
-    const oc = midC + (offsets[i] ? offsets[i][1] : 0);
-    const r = Math.max(1, Math.min(height - 2, or));
-    const c = Math.max(1, Math.min(width - 2, oc));
-    enemies.push({ row: r, col: c, color: colors[i % colors.length] });
-    enemyAnims.push({ x: c * cellSize + cellSize / 2, y: r * cellSize + cellSize / 2 });
+
+  // BFS from player to get distances
+  const dist = new Int32Array(totalVertices).fill(-1);
+  const queue = [playerVertex];
+  dist[playerVertex] = 0;
+  let maxDist = 0;
+  while (queue.length) {
+    const v = queue.shift();
+    for (const n of passableNeighbors[v]) {
+      if (dist[n] === -1) {
+        dist[n] = dist[v] + 1;
+        if (dist[n] > maxDist) maxDist = dist[n];
+        queue.push(n);
+      }
+    }
+  }
+
+  // Pick vertices at ~40-60% of max distance, spread apart
+  const targetDist = Math.floor(maxDist * 0.5);
+  const candidates = [];
+  for (let v = 0; v < totalVertices; v++) {
+    if (v !== playerVertex && v !== goalVertex && Math.abs(dist[v] - targetDist) <= Math.max(2, maxDist * 0.1)) {
+      candidates.push(v);
+    }
+  }
+
+  // Pick count enemies spread apart
+  for (let i = 0; i < count && candidates.length > 0; i++) {
+    const idx = Math.floor(i * candidates.length / count);
+    const v = candidates[Math.min(idx, candidates.length - 1)];
+    enemies.push({ vertex: v, color: colors[i % colors.length] });
+    enemyAnims.push({ x: cellPos[v].x, y: cellPos[v].y });
   }
 }
 
+// ===== New Game =====
 function newGame() {
   document.getElementById('winOverlay').classList.remove('show');
   clearInterval(gameTickInterval);
   clearInterval(timerInterval);
 
+  const shape = document.getElementById('shape').value;
   const size = parseInt(document.getElementById('size').value);
-  width = size; height = size;
-  playerRow = 0; playerCol = 0; playerDir = null;
-  goalRow = height - 1; goalCol = width - 1;
-  moveCount = 0; gameOver = false; gameWon = false; gameStarted = false; showingHint = false;
-  enemyTickCounter = 0;
-  // Enemies slower on small mazes, faster on large ones
-  enemySpeed = size <= 5 ? 5 : size <= 10 ? 4 : 3;
-  document.getElementById('moves').textContent = '0';
-
   const seed = (Math.random() * 0xffffffff) >>> 0;
-  maze = new RectangularMaze(width, height);
+
+  // Create maze
+  if (shape === 'hex') {
+    maze = new HexagonalMaze(size);
+  } else {
+    maze = new RectangularMaze(size, size);
+  }
   maze.initializeGraph();
+
+  // Save all original neighbors BEFORE generation
+  const originalNeighbors = [];
+  for (let v = 0; v < maze.vertices; v++) {
+    originalNeighbors[v] = [];
+    for (const edge of maze.adjacencylist[v]) {
+      if (edge[0] >= 0) originalNeighbors[v].push(edge[0]);
+    }
+  }
+
+  // Generate
   const algo = new Kruskal(seed);
   maze.generateMaze(algo);
 
-  buildPassable();
-  calcCellSize();
+  // Build passable neighbors (edges that were removed = passable paths)
+  passableNeighbors = [];
+  for (let v = 0; v < maze.vertices; v++) {
+    const wallSet = new Set(maze.adjacencylist[v].map(e => e[0]));
+    passableNeighbors[v] = originalNeighbors[v].filter(n => !wallSet.has(n));
+  }
+
+  // Set up coordinates and cell positions
+  buildGameGraph();
+  buildWallSegments();
+
+  // Player/goal vertices
+  playerVertex = maze.startvertex;
+  goalVertex = maze.endvertex;
+
+  // Reset state
+  moveCount = 0; gameOver = false; gameWon = false; gameStarted = false;
+  showingHint = false; enemyTickCounter = 0;
+  inputAngle = null; moveAngle = null; lastMoveAngle = 0;
+  document.getElementById('moves').textContent = '0';
+  document.getElementById('timer').textContent = '0:00';
+
+  // Enemy speed based on maze size
+  const n = maze.vertices;
+  enemySpeed = n <= 50 ? 5 : n <= 100 ? 4 : n <= 200 ? 3 : 2;
 
   // Spawn enemies
   const enemyCount = parseInt(document.getElementById('enemyCount').value);
   spawnEnemies(enemyCount);
 
   // Init animation positions
-  playerAnimX = playerCol * cellSize + cellSize / 2;
-  playerAnimY = playerRow * cellSize + cellSize / 2;
+  playerAnimX = cellPos[playerVertex].x;
+  playerAnimY = cellPos[playerVertex].y;
 
-  document.getElementById('timer').textContent = '0:00';
-
-  // Start game tick (but enemies wait for gameStarted)
+  // Start game tick
   gameTickInterval = setInterval(gameTick, TICK_MS);
-
-  // Restart music if it was playing
   if (musicPlaying) startMusic();
-
   draw();
 }
 
 // ===== Input =====
 
-// Keyboard (set direction, hold to keep moving)
+// Keyboard
+const KEY_ANGLES = {
+  ArrowRight: 0, d: 0,
+  ArrowDown: Math.PI / 2, s: Math.PI / 2,
+  ArrowLeft: Math.PI, a: Math.PI,
+  ArrowUp: -Math.PI / 2, w: -Math.PI / 2,
+};
 document.addEventListener('keydown', e => {
-  const map = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
-                w: 'up', s: 'down', a: 'left', d: 'right' };
-  const dir = map[e.key];
-  if (dir) { e.preventDefault(); setDirection(dir); }
-  // Space to start music on first interaction
+  if (e.key in KEY_ANGLES) { e.preventDefault(); setInputAngle(KEY_ANGLES[e.key]); }
   if (e.key === ' ') { e.preventDefault(); toggleMusic(); }
 });
 
 // Joystick
 const joystickZone = document.getElementById('joystickZone');
 const joystickKnob = document.getElementById('joystickKnob');
-let joystickActive = false, joystickCenterX = 0, joystickCenterY = 0;
-const JOYSTICK_RADIUS = 50;
-const JOYSTICK_DEADZONE = 15;
+let joystickActive = false;
+const JOYSTICK_RADIUS = 50, JOYSTICK_DEADZONE = 15;
 
 function updateJoystick(clientX, clientY) {
   const rect = joystickZone.getBoundingClientRect();
-  joystickCenterX = rect.left + rect.width / 2;
-  joystickCenterY = rect.top + rect.height / 2;
-  let dx = clientX - joystickCenterX;
-  let dy = clientY - joystickCenterY;
+  const cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
+  let dx = clientX - cx, dy = clientY - cy;
   const dist = Math.sqrt(dx * dx + dy * dy);
-  // Clamp to radius
   if (dist > JOYSTICK_RADIUS) { dx = dx / dist * JOYSTICK_RADIUS; dy = dy / dist * JOYSTICK_RADIUS; }
   joystickKnob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
-
   if (dist > JOYSTICK_DEADZONE) {
-    if (Math.abs(dx) > Math.abs(dy)) {
-      setDirection(dx > 0 ? 'right' : 'left');
-    } else {
-      setDirection(dy > 0 ? 'down' : 'up');
-    }
+    setInputAngle(Math.atan2(dy, dx));
   }
 }
 
@@ -737,8 +793,7 @@ joystickZone.addEventListener('touchstart', e => {
   updateJoystick(e.touches[0].clientX, e.touches[0].clientY);
 });
 document.addEventListener('touchmove', e => {
-  if (!joystickActive) return;
-  e.preventDefault();
+  if (!joystickActive) return; e.preventDefault();
   updateJoystick(e.touches[0].clientX, e.touches[0].clientY);
 }, { passive: false });
 document.addEventListener('touchend', e => {
@@ -747,22 +802,17 @@ document.addEventListener('touchend', e => {
   joystickKnob.style.transform = 'translate(-50%, -50%)';
 });
 
-// Swipe anywhere on canvas too (for quick flicks)
+// Canvas swipe
 let touchStartX = 0, touchStartY = 0;
 canvas.addEventListener('touchstart', e => {
   initAudio();
-  const t = e.touches[0];
-  touchStartX = t.clientX; touchStartY = t.clientY;
+  touchStartX = e.touches[0].clientX; touchStartY = e.touches[0].clientY;
 });
 canvas.addEventListener('touchend', e => {
   const t = e.changedTouches[0];
   const dx = t.clientX - touchStartX, dy = t.clientY - touchStartY;
   if (Math.abs(dx) < 25 && Math.abs(dy) < 25) return;
-  if (Math.abs(dx) > Math.abs(dy)) {
-    setDirection(dx > 0 ? 'right' : 'left');
-  } else {
-    setDirection(dy > 0 ? 'down' : 'up');
-  }
+  setInputAngle(Math.atan2(dy, dx));
 });
 
 // Theme change
@@ -772,12 +822,14 @@ document.getElementById('theme').addEventListener('change', () => {
 
 // Resize
 window.addEventListener('resize', () => {
-  calcCellSize();
-  playerAnimX = playerCol * cellSize + cellSize / 2;
-  playerAnimY = playerRow * cellSize + cellSize / 2;
+  if (!maze) return;
+  buildGameGraph();
+  buildWallSegments();
+  playerAnimX = cellPos[playerVertex].x;
+  playerAnimY = cellPos[playerVertex].y;
   for (let i = 0; i < enemies.length; i++) {
-    enemyAnims[i].x = enemies[i].col * cellSize + cellSize / 2;
-    enemyAnims[i].y = enemies[i].row * cellSize + cellSize / 2;
+    enemyAnims[i].x = cellPos[enemies[i].vertex].x;
+    enemyAnims[i].y = cellPos[enemies[i].vertex].y;
   }
   if (!gameOver && !gameWon) draw();
 });
