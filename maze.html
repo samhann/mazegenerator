@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<title>Maze Generator</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: #f5f5f5; color: #333;
+  min-height: 100vh; display: flex; flex-direction: column;
+}
+header {
+  background: #1a1a2e; color: #fff; padding: 16px 20px;
+  text-align: center;
+}
+header h1 { font-size: 1.4em; font-weight: 600; }
+header p { font-size: 0.8em; opacity: 0.7; margin-top: 4px; }
+.controls {
+  background: #fff; padding: 16px 20px;
+  display: flex; flex-wrap: wrap; gap: 12px;
+  align-items: end; justify-content: center;
+  border-bottom: 1px solid #ddd;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+.control-group { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.control-group label { font-size: 0.75em; font-weight: 600; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
+.control-group select, .control-group input {
+  padding: 8px 10px; border: 1px solid #ccc; border-radius: 6px;
+  font-size: 0.9em; background: #fff; min-width: 0; width: 100%;
+}
+.control-group select { appearance: auto; }
+.control-group input[type=number] { width: 70px; }
+.control-group input[type=text] { width: 100px; }
+button {
+  padding: 10px 24px; background: #e94560; color: #fff;
+  border: none; border-radius: 6px; font-size: 0.95em; font-weight: 600;
+  cursor: pointer; transition: background 0.2s; white-space: nowrap;
+}
+button:hover { background: #c73550; }
+button:active { transform: scale(0.97); }
+button.secondary { background: #16213e; }
+button.secondary:hover { background: #0f3460; }
+.maze-container {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  padding: 20px; overflow: auto;
+}
+.maze-container svg {
+  max-width: 100%; max-height: 70vh; height: auto;
+  background: #fff; border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+.size-row { display: flex; gap: 8px; align-items: end; }
+@media (max-width: 600px) {
+  .controls { padding: 12px; gap: 8px; }
+  .control-group select, .control-group input { font-size: 16px; }
+  header h1 { font-size: 1.2em; }
+  button { padding: 10px 16px; flex: 1; }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Maze Generator</h1>
+  <p>Based on razimantv/mazegenerator</p>
+</header>
+<div class="controls">
+  <div class="control-group">
+    <label>Shape</label>
+    <select id="mazeType">
+      <option value="0">Rectangular</option>
+      <option value="1">Hexagonal</option>
+      <option value="2">Honeycomb</option>
+      <option value="3">Circular</option>
+      <option value="4">Circular Hex</option>
+      <option value="6">Triangular</option>
+    </select>
+  </div>
+  <div class="control-group">
+    <label>Algorithm</label>
+    <select id="algorithm">
+      <option value="0">Kruskal</option>
+      <option value="1">DFS</option>
+      <option value="2">BFS</option>
+      <option value="3">Wilson's</option>
+      <option value="4">Prim's</option>
+    </select>
+  </div>
+  <div class="control-group" id="sizeGroup">
+    <label>Size</label>
+    <div class="size-row">
+      <input type="number" id="width" value="15" min="2" max="80">
+      <span id="timesSign">&times;</span>
+      <input type="number" id="height" value="15" min="2" max="80">
+    </div>
+  </div>
+  <div class="control-group">
+    <label>Seed</label>
+    <input type="text" id="seed" placeholder="random">
+  </div>
+  <button onclick="generate()">Generate</button>
+  <button class="secondary" onclick="downloadSVG()">Save SVG</button>
+</div>
+<div class="maze-container" id="output"></div>
+
+<script>
+// ===== MT19937 =====
+class MT19937 {
+  constructor(seed) {
+    this.N = 624; this.M = 397;
+    this.mt = new Uint32Array(this.N);
+    this.index = this.N + 1;
+    this._seed(seed >>> 0);
+  }
+  _seed(s) {
+    this.mt[0] = s >>> 0;
+    for (let i = 1; i < this.N; i++) {
+      const prev = this.mt[i-1];
+      this.mt[i] = (Math.imul(1812433253, prev ^ (prev >>> 30)) + i) >>> 0;
+    }
+    this.index = this.N;
+  }
+  _generate() {
+    const mag01 = [0, 0x9908b0df];
+    for (let i = 0; i < this.N; i++) {
+      const y = (this.mt[i] & 0x80000000) | (this.mt[(i+1) % this.N] & 0x7fffffff);
+      this.mt[i] = this.mt[(i + this.M) % this.N] ^ (y >>> 1) ^ mag01[y & 1];
+    }
+    this.index = 0;
+  }
+  next() {
+    if (this.index >= this.N) this._generate();
+    let y = this.mt[this.index++];
+    y ^= y >>> 11;
+    y ^= (y << 7) & 0x9d2c5680;
+    y ^= (y << 15) & 0xefc60000;
+    y ^= y >>> 18;
+    return y >>> 0;
+  }
+  uniformInt(min, max) {
+    const urange = (max - min) >>> 0;
+    if (urange === 0) return min;
+    const uerange = (urange + 1) >>> 0;
+    const scaling = Number(BigInt(0xFFFFFFFF) / BigInt(uerange));
+    const past = Math.imul(uerange, scaling) >>> 0;
+    let ret;
+    do { ret = this.next(); } while (ret >= past);
+    return min + Math.trunc(ret / scaling);
+  }
+  shuffle(arr) {
+    const n = arr.length;
+    if (n <= 1) return;
+    if (Math.trunc(0xFFFFFFFF / n) >= n) {
+      let i = 1;
+      if (n % 2 === 0) {
+        const j = this.uniformInt(0, 1);
+        [arr[i], arr[j]] = [arr[j], arr[i]]; i++;
+      }
+      while (i < n) {
+        const sr = i + 1;
+        const x = this.uniformInt(0, sr * (sr + 1) - 1);
+        const j1 = Math.trunc(x / (sr + 1)), j2 = x % (sr + 1);
+        [arr[i], arr[j1]] = [arr[j1], arr[i]]; i++;
+        [arr[i], arr[j2]] = [arr[j2], arr[i]]; i++;
+      }
+    } else {
+      for (let i = 1; i < n; i++) {
+        const j = this.uniformInt(0, i);
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+    }
+  }
+}
+
+// ===== CellBorder =====
+class LineBorder {
+  constructor(x1, y1, x2, y2) { this.x1=x1; this.y1=y1; this.x2=x2; this.y2=y2; }
+  svgEl(color, scale) {
+    const l = document.createElementNS('http://www.w3.org/2000/svg','line');
+    l.setAttribute('x1', this.x1*scale); l.setAttribute('y1', this.y1*scale);
+    l.setAttribute('x2', this.x2*scale); l.setAttribute('y2', this.y2*scale);
+    l.setAttribute('stroke', color); l.setAttribute('stroke-linecap','round');
+    l.setAttribute('stroke-width', scale < 20 ? 2 : 3);
+    return l;
+  }
+}
+class ArcBorder {
+  constructor(cx, cy, r, theta1, theta2) { this.cx=cx; this.cy=cy; this.r=r; this.theta1=theta1; this.theta2=theta2; }
+  svgEl(color, scale) {
+    const x1 = this.cx + this.r * Math.cos(this.theta1);
+    const y1 = this.cy + this.r * Math.sin(this.theta1);
+    const x2 = this.cx + this.r * Math.cos(this.theta2);
+    const y2 = this.cy + this.r * Math.sin(this.theta2);
+    const p = document.createElementNS('http://www.w3.org/2000/svg','path');
+    p.setAttribute('d', `M ${x2*scale} ${y2*scale} A ${this.r*scale} ${this.r*scale} 0 0 0 ${x1*scale} ${y1*scale}`);
+    p.setAttribute('stroke', color); p.setAttribute('stroke-linecap','round');
+    p.setAttribute('stroke-width', scale < 20 ? 2 : 3); p.setAttribute('fill','none');
+    return p;
+  }
+}
+
+// ===== SpanningTreeAlgorithm =====
+class SpanningTreeAlgorithm {
+  constructor(seed) {
+    this.spanningtree = [];
+    this.generator = new MT19937(seed !== undefined ? seed : (Math.random()*0xffffffff)>>>0);
+  }
+}
+
+// ===== Algorithms =====
+class Kruskal extends SpanningTreeAlgorithm {
+  _getParent(u) { return this._parent[u]===u ? u : (this._parent[u]=this._getParent(this._parent[u])); }
+  spanningTree(V, adj) {
+    const edges = [];
+    for (let i=0;i<V;i++) for (const e of adj[i]) if(e[0]>i) edges.push([i,e[0]]);
+    this.generator.shuffle(edges);
+    this._parent = Array.from({length:V},(_,i)=>i);
+    this.spanningtree = [];
+    for (const e of edges) {
+      const u=this._getParent(e[0]), v=this._getParent(e[1]);
+      if(u===v) continue;
+      this._parent[u]=v; this.spanningtree.push(e);
+    }
+    return this.spanningtree;
+  }
+}
+
+class DepthFirstSearch extends SpanningTreeAlgorithm {
+  _dfs(v, adj) {
+    const order = Array.from({length:adj[v].length},(_,i)=>i);
+    this.generator.shuffle(order);
+    for (const idx of order) {
+      const nv = adj[v][idx][0];
+      if(nv<0||this._parent[nv]>=0) continue;
+      this.spanningtree.push([v,nv]); this._parent[nv]=v; this._dfs(nv,adj);
+    }
+  }
+  spanningTree(V, adj) {
+    this.spanningtree=[]; this._parent=new Array(V).fill(-1);
+    this._dfs(this.generator.uniformInt(0,V-1), adj);
+    return this.spanningtree;
+  }
+  solveMaze(V, adj, start) {
+    this.spanningtree=[]; this._parent=new Array(V).fill(-1);
+    this._parent[start]=start; this._dfs(start,adj); return this._parent;
+  }
+}
+
+class BreadthFirstSearch extends SpanningTreeAlgorithm {
+  spanningTree(V, adj) {
+    const visited=new Array(V).fill(false);
+    const sv=this.generator.uniformInt(0,V-1);
+    let cur=[sv]; visited[sv]=true; this.spanningtree=[];
+    while(cur.length>0) {
+      const next=[];
+      for(const v of cur) for(const e of adj[v]) {
+        if(e[0]<0||visited[e[0]]) continue;
+        visited[e[0]]=true; this.spanningtree.push([v,e[0]]); next.push(e[0]);
+      }
+      cur=next; this.generator.shuffle(cur);
+    }
+    return this.spanningtree;
+  }
+}
+
+class LoopErasedRandomWalk extends SpanningTreeAlgorithm {
+  _lerw(vertex, round, adj) {
+    const current=[];
+    while(!this._visited[vertex]) {
+      this._visited[vertex]=round; current.push(vertex);
+      let nv;
+      do { nv=adj[vertex][this.generator.uniformInt(0,adj[vertex].length-1)][0]; } while(nv<0);
+      if(this._visited[nv]===round) {
+        do { vertex=current.pop(); this._visited[vertex]=0; } while(vertex!==nv);
+      }
+      vertex=nv;
+    }
+    current.push(vertex);
+    for(let i=0;i+1<current.length;i++) this.spanningtree.push([current[i],current[i+1]]);
+  }
+  spanningTree(V, adj) {
+    this.spanningtree=[]; this._visited=new Array(V).fill(0);
+    const nodes=Array.from({length:V},(_,i)=>i);
+    this.generator.shuffle(nodes);
+    this._visited[nodes[0]]=1;
+    for(let round=1,i=1;i<V;i++) {
+      if(this._visited[nodes[i]]) continue;
+      this._lerw(nodes[i],++round,adj);
+    }
+    return this.spanningtree;
+  }
+}
+
+class Prim extends SpanningTreeAlgorithm {
+  spanningTree(V, adj) {
+    this.spanningtree=[];
+    const visited=new Array(V).fill(false), boundary=[];
+    let vertex=this.generator.uniformInt(0,V-1);
+    for(let i=1;i<V;i++) {
+      visited[vertex]=true;
+      for(const p of adj[vertex]) if(p[0]!==-1&&!visited[p[0]]) boundary.push([vertex,p[0]]);
+      let nextedge=null;
+      do {
+        const idx=this.generator.uniformInt(0,boundary.length-1);
+        [boundary[idx],boundary[boundary.length-1]]=[boundary[boundary.length-1],boundary[idx]];
+        if(!visited[boundary[boundary.length-1][1]]) nextedge=boundary[boundary.length-1];
+        boundary.pop();
+      } while(!nextedge);
+      this.spanningtree.push(nextedge); vertex=nextedge[1];
+    }
+    return this.spanningtree;
+  }
+}
+
+// ===== Maze base =====
+class Maze {
+  constructor(vertices=0, startvertex=0, endvertex=1) {
+    this.vertices=vertices; this.startvertex=startvertex; this.endvertex=endvertex;
+    this.adjacencylist=[]; this.solution=[];
+  }
+  initializeGraph() {
+    this.adjacencylist=[]; for(let i=0;i<this.vertices;i++) this.adjacencylist.push([]);
+  }
+  generateMaze(algo) {
+    const st=algo.spanningTree(this.vertices,this.adjacencylist);
+    this._solve(st); this._removeBorders(st);
+  }
+  _solve(edges) {
+    const g=[]; for(let i=0;i<this.vertices;i++) g.push([]);
+    for(const[u,v] of edges) {
+      const eUV=this.adjacencylist[u].find(e=>e[0]===v); if(eUV) g[u].push(eUV);
+      const eVU=this.adjacencylist[v].find(e=>e[0]===u); if(eVU) g[v].push(eVU);
+    }
+    const dfs=new DepthFirstSearch();
+    const parent=dfs.solveMaze(this.vertices,g,this.startvertex);
+    this.solution=[]; for(let i=0;i<this.vertices;i++) this.solution.push([]);
+    for(let u=this.endvertex;parent[u]!==u;u=parent[u]) {
+      const e=g[u].find(e=>e[0]===parent[u]); if(e) this.solution[u].push(e);
+    }
+  }
+  _removeBorders(edges) {
+    for(const[u,v] of edges) {
+      let idx=this.adjacencylist[u].findIndex(e=>e[0]===v); if(idx>=0) this.adjacencylist[u].splice(idx,1);
+      idx=this.adjacencylist[v].findIndex(e=>e[0]===u); if(idx>=0) this.adjacencylist[v].splice(idx,1);
+    }
+  }
+  renderSVG() {
+    const [xmin,ymin,xmax,ymax]=this.getCoordinateBounds();
+    const pad=1;
+    const w=xmax-xmin+2*pad, h=ymax-ymin+2*pad;
+    // Adaptive scale: aim for ~600px on the long side but cap at 30
+    const targetPx = Math.min(800, window.innerWidth - 40, (window.innerHeight - 200));
+    const scale = Math.min(30, Math.max(4, targetPx / Math.max(w, h)));
+    const svgW = Math.round(w * scale), svgH = Math.round(h * scale);
+    const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+    svg.setAttribute('width', svgW); svg.setAttribute('height', svgH);
+    svg.setAttribute('xmlns','http://www.w3.org/2000/svg');
+    svg.setAttribute('viewBox', `0 0 ${svgW} ${svgH}`);
+    const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('transform', `translate(${(pad-xmin)*scale},${svgH-(pad-ymin)*scale}) scale(1,-1)`);
+    const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+    rect.setAttribute('x',(xmin-pad)*scale); rect.setAttribute('y',(ymin-pad)*scale);
+    rect.setAttribute('width',svgW); rect.setAttribute('height',svgH);
+    rect.setAttribute('fill','white');
+    g.appendChild(rect);
+    for(let i=0;i<this.vertices;i++) {
+      for(const edge of this.adjacencylist[i]) {
+        if(edge[0]<i) g.appendChild(edge[1].svgEl('#1a1a2e', scale));
+      }
+    }
+    svg.appendChild(g);
+    return svg;
+  }
+}
+
+// ===== Maze Types =====
+class RectangularMaze extends Maze {
+  constructor(w, h) { super(w*h, 0, w*h-1); this.w=w; this.h=h; }
+  _vi(r,c) { return r*this.w+c; }
+  initializeGraph() {
+    super.initializeGraph();
+    for(let i=0;i<this.w;i++) {
+      this.adjacencylist[this._vi(0,i)].push([-1,new LineBorder(i,0,i+1,0)]);
+      this.adjacencylist[this._vi(this.h-1,i)].push([-1,new LineBorder(i,this.h,i+1,this.h)]);
+    }
+    for(let i=0;i<this.h;i++) {
+      if(i!==0) this.adjacencylist[this._vi(i,0)].push([-1,new LineBorder(0,i,0,i+1)]);
+      if(i!==this.h-1) this.adjacencylist[this._vi(i,0)].push([-1,new LineBorder(this.w,i,this.w,i+1)]);
+    }
+    for(let i=0;i<this.h;i++) for(let j=0;j<this.w-1;j++) {
+      const b=new LineBorder(j+1,i,j+1,i+1);
+      this.adjacencylist[this._vi(i,j)].push([this._vi(i,j+1),b]);
+      this.adjacencylist[this._vi(i,j+1)].push([this._vi(i,j),b]);
+    }
+    for(let i=0;i<this.h-1;i++) for(let j=0;j<this.w;j++) {
+      const b=new LineBorder(j,i+1,j+1,i+1);
+      this.adjacencylist[this._vi(i,j)].push([this._vi(i+1,j),b]);
+      this.adjacencylist[this._vi(i+1,j)].push([this._vi(i,j),b]);
+    }
+  }
+  getCoordinateBounds() { return [0,0,this.w,this.h]; }
+}
+
+class HexagonalMaze extends Maze {
+  constructor(size) {
+    super(6*size*size); this._size=size;
+    this.startvertex=this._vi(0,1,size-1,0); this.endvertex=this._vi(3,1,size-1,0);
+  }
+  _vi(s,ud,r,c) {
+    let v=s*this._size*this._size;
+    if(ud===1) v+=(this._size*(this._size+1))/2;
+    return v+(r*(r+1))/2+c;
+  }
+  _getEdge(s,r,c,e) {
+    const sz=this._size, x2=-sz/2, y2=Math.sqrt(3)*x2;
+    const dx12=x2/sz, dy12=y2/sz, dx23=(-x2-x2)/sz, dy23=0;
+    let ex1,ey1,ex2,ey2;
+    if(e===0) { ex1=dx12*(r+1)+dx23*c; ey1=dy12*(r+1)+dy23*c; ex2=ex1+dx23; ey2=ey1+dy23; }
+    else if(e===1) { ex1=dx12*r+dx23*c; ey1=dy12*r+dy23*c; ex2=ex1+dx12+dx23; ey2=ey1+dy12+dy23; }
+    else { ex1=dx12*r+dx23*c; ey1=dy12*r+dy23*c; ex2=ex1+dx12; ey2=ey1+dy12; }
+    const theta=s*Math.PI/3, sin=Math.sin(theta), cos=Math.cos(theta);
+    return new LineBorder(ex1*cos-ey1*sin, ex1*sin+ey1*cos, ex2*cos-ey2*sin, ex2*sin+ey2*cos);
+  }
+  initializeGraph() {
+    super.initializeGraph();
+    const sz=this._size;
+    for(let s=0;s<6;s++) {
+      for(let i=0;i<sz;i++) if(i>0||s%3!==0) this.adjacencylist[this._vi(s,0,sz-1,i)].push([-1,this._getEdge(s,sz-1,i,0)]);
+      for(let i=0;i<sz;i++) {
+        const p=this._getEdge(s,i,i,1);
+        this.adjacencylist[this._vi(s,0,i,i)].push([this._vi((s+1)%6,0,i,0),p]);
+        this.adjacencylist[this._vi((s+1)%6,0,i,0)].push([this._vi(s,0,i,i),p]);
+      }
+      for(let i=0;i<sz-1;i++) for(let j=0;j<=i;j++) {
+        const p=this._getEdge(s,i,j,0);
+        this.adjacencylist[this._vi(s,0,i,j)].push([this._vi(s,1,i,j),p]);
+        this.adjacencylist[this._vi(s,1,i,j)].push([this._vi(s,0,i,j),p]);
+      }
+      for(let i=0;i<sz;i++) for(let j=0;j<i;j++) {
+        const p=this._getEdge(s,i,j,1);
+        this.adjacencylist[this._vi(s,0,i,j)].push([this._vi(s,1,i-1,j),p]);
+        this.adjacencylist[this._vi(s,1,i-1,j)].push([this._vi(s,0,i,j),p]);
+      }
+      for(let i=0;i<sz;i++) for(let j=1;j<=i;j++) {
+        const p=this._getEdge(s,i,j,2);
+        this.adjacencylist[this._vi(s,0,i,j)].push([this._vi(s,1,i-1,j-1),p]);
+        this.adjacencylist[this._vi(s,1,i-1,j-1)].push([this._vi(s,0,i,j),p]);
+      }
+    }
+  }
+  getCoordinateBounds() { const s=this._size; return [-s,-Math.sqrt(3)/2*s,s,Math.sqrt(3)/2*s]; }
+}
+
+class HoneyCombMaze extends Maze {
+  constructor(size) { super(3*size*(size-1)+1,0,3*size*(size-1)); this._size=size; }
+  _vi(u,v) {
+    const s=this._size;
+    return u<=0 ? ((3*s+u)*(s+u-1))/2+v : (3*s*(s-1)+(4*s-u-1)*u)/2+v;
+  }
+  _edge(u,v,e) {
+    const dxu=Math.sqrt(3)/2, dyu=1.5, dxv=Math.sqrt(3);
+    const cx=dxu*u+dxv*v, cy=dyu*u;
+    const t1=(e-2.5)*Math.PI/3, t2=t1+Math.PI/3;
+    return new LineBorder(cx+Math.cos(t1),cy+Math.sin(t1),cx+Math.cos(t2),cy+Math.sin(t2));
+  }
+  _vext(u) { return u<0 ? [-this._size-u+1,this._size-1] : [-this._size+1,this._size-1-u]; }
+  _valid(u,v) {
+    if(u<=-this._size||u>=this._size) return false;
+    const[a,b]=this._vext(u); return v>=a&&v<=b;
+  }
+  initializeGraph() {
+    super.initializeGraph();
+    const N=[[-1,0],[-1,1],[0,1],[1,0],[1,-1],[0,-1]];
+    for(let u=-this._size+1;u<this._size;u++) {
+      const[vmin,vmax]=this._vext(u);
+      for(let v=vmin;v<=vmax;v++) {
+        const node=this._vi(u,v);
+        for(let n=0;n<6;n++) {
+          const uu=u+N[n][0], vv=v+N[n][1];
+          if(this._valid(uu,vv)) {
+            const nn=this._vi(uu,vv);
+            if(nn>node) continue;
+            const b=this._edge(u,v,n);
+            this.adjacencylist[node].push([nn,b]); this.adjacencylist[nn].push([node,b]);
+          } else {
+            if((node===this.startvertex&&n===0)||(node===this.endvertex&&n===3)) continue;
+            this.adjacencylist[node].push([-1,this._edge(u,v,n)]);
+          }
+        }
+      }
+    }
+  }
+  getCoordinateBounds() {
+    const x=Math.sqrt(3)*(this._size-0.5), y=1.5*this._size-0.5;
+    return [-x,-y,x,y];
+  }
+}
+
+class CircularMaze extends Maze {
+  constructor(size) {
+    super(); this._size=size;
+    this._rnc=new Array(size); this._rps=new Array(size);
+    this._rnc[0]=1; this._rps[0]=0;
+    for(let i=1;i<size;i++) {
+      this._rnc[i]=this._rnc[i-1];
+      if(2*Math.PI*i/this._rnc[i-1]>2) this._rnc[i]*=2;
+      this._rps[i]=this._rps[i-1]+this._rnc[i-1];
+    }
+    this.vertices=this._rnc[size-1]+this._rps[size-1];
+    this.startvertex=this._rps[size-1];
+    this.endvertex=this.startvertex+Math.floor(this._rnc[size-1]/2);
+  }
+  initializeGraph() {
+    super.initializeGraph();
+    const PI=Math.PI;
+    for(let i=1;i<this._size;i++) for(let j=0;j<this._rnc[i];j++) {
+      const node=this._rps[i]+j;
+      const nn1=this._rps[i-1]+Math.floor((this._rnc[i-1]*j)/this._rnc[i]);
+      const arc=new ArcBorder(0,0,i,j*2*PI/this._rnc[i]-PI/2,(j+1)*2*PI/this._rnc[i]-PI/2);
+      this.adjacencylist[node].push([nn1,arc]); this.adjacencylist[nn1].push([node,arc]);
+      const nn2=this._rps[i]+((j+1)%this._rnc[i]);
+      const theta=(j+1)*2*PI/this._rnc[i]-PI/2;
+      const lb=new LineBorder(i*Math.cos(theta),i*Math.sin(theta),(i+1)*Math.cos(theta),(i+1)*Math.sin(theta));
+      this.adjacencylist[node].push([nn2,lb]); this.adjacencylist[nn2].push([node,lb]);
+      if(i===this._size-1&&node!==this.startvertex&&node!==this.endvertex) {
+        this.adjacencylist[node].push([-1,new ArcBorder(0,0,this._size,j*2*PI/this._rnc[i]-PI/2,(j+1)*2*PI/this._rnc[i]-PI/2)]);
+      }
+    }
+  }
+  getCoordinateBounds() { const s=this._size; return [-s,-s,s,s]; }
+}
+
+class CircularHexagonMaze extends HexagonalMaze {
+  constructor(size) { super(size); }
+  _getEdge(s,r,c,e) {
+    const PI=Math.PI;
+    if(e===0) return new ArcBorder(0,0,r+1,(s-2)*PI/3+c*PI/3/(r+1),(s-2)*PI/3+(c+1)*PI/3/(r+1));
+    let t1=(s-2)*PI/3, t2=(s-2)*PI/3;
+    if(e===1) { if(r>0) t1+=c*PI/3/r; t2+=(c+1)*PI/3/(r+1); }
+    else { if(r>0) t1+=c*PI/3/r; t2+=c*PI/3/(r+1); }
+    return new LineBorder(r*Math.cos(t1),r*Math.sin(t1),(r+1)*Math.cos(t2),(r+1)*Math.sin(t2));
+  }
+  getCoordinateBounds() { const s=this._size; return [-s,-s,s,s]; }
+}
+
+class TriangularMaze extends Maze {
+  constructor(rows) {
+    super(); this._rows=rows;
+    this.vertices=rows*(rows+1)/2; this.startvertex=0; this.endvertex=this.vertices-1;
+  }
+  _cir(r) { return this._rows-r; }
+  _cbr(r) { let t=0; for(let i=0;i<r;i++) t+=this._cir(i); return t; }
+  _vi(r,c) { return this._cbr(r)+c; }
+  initializeGraph() {
+    super.initializeGraph();
+    for(let i=0;i<this._cir(0);i++) this.adjacencylist[this._vi(0,i)].push([-1,new LineBorder(i,0,i+1,0)]);
+    this.adjacencylist[this._vi(this._rows-1,0)].push([-1,new LineBorder(0,this._rows,1,this._rows)]);
+    for(let r=0;r<this._rows;r++) {
+      const c=this._cir(r);
+      if(r!==0) this.adjacencylist[this._vi(r,0)].push([-1,new LineBorder(0,r,0,r+1)]);
+      if(!(r===this._rows-1&&c===1)) this.adjacencylist[this._vi(r,c-1)].push([-1,new LineBorder(c,r,c,r+1)]);
+    }
+    for(let r=0;r<this._rows-1;r++) {
+      const c=this._cir(r), cn=this._cir(r+1);
+      if(!(r===this._rows-2&&cn===1)) this.adjacencylist[this._vi(r,c-1)].push([-1,new LineBorder(c,r+1,cn,r+1)]);
+    }
+    for(let r=0;r<this._rows;r++) { const c=this._cir(r);
+      for(let j=0;j<c-1;j++) {
+        const b=new LineBorder(j+1,r,j+1,r+1);
+        this.adjacencylist[this._vi(r,j)].push([this._vi(r,j+1),b]);
+        this.adjacencylist[this._vi(r,j+1)].push([this._vi(r,j),b]);
+      }
+    }
+    for(let r=0;r<this._rows-1;r++) { const cn=this._cir(r+1);
+      for(let j=0;j<cn;j++) {
+        const b=new LineBorder(j,r+1,j+1,r+1);
+        this.adjacencylist[this._vi(r,j)].push([this._vi(r+1,j),b]);
+        this.adjacencylist[this._vi(r+1,j)].push([this._vi(r,j),b]);
+      }
+    }
+  }
+  getCoordinateBounds() { return [0,0,this._rows,this._rows]; }
+}
+
+// ===== UI =====
+const mazeTypes = { 0: 'rect', 1: 'hex', 2: 'honeycomb', 3: 'circular', 4: 'circhex', 6: 'tri' };
+const algoClasses = [Kruskal, DepthFirstSearch, BreadthFirstSearch, LoopErasedRandomWalk, Prim];
+
+function updateSizeUI() {
+  const mt = parseInt(document.getElementById('mazeType').value);
+  const isRect = mt === 0;
+  document.getElementById('timesSign').style.display = isRect ? '' : 'none';
+  document.getElementById('height').style.display = isRect ? '' : 'none';
+  document.getElementById('width').max = isRect ? 80 : 40;
+  if (!isRect) document.getElementById('width').value = Math.min(parseInt(document.getElementById('width').value), 40);
+}
+document.getElementById('mazeType').addEventListener('change', updateSizeUI);
+updateSizeUI();
+
+let lastSVG = null;
+
+function generate() {
+  const mt = parseInt(document.getElementById('mazeType').value);
+  const at = parseInt(document.getElementById('algorithm').value);
+  const w = parseInt(document.getElementById('width').value) || 15;
+  const h = parseInt(document.getElementById('height').value) || 15;
+  const seedStr = document.getElementById('seed').value.trim();
+  const seed = seedStr ? parseInt(seedStr) : (Math.random() * 0xffffffff) >>> 0;
+  if (!seedStr) document.getElementById('seed').value = seed;
+
+  let maze;
+  switch(mt) {
+    case 0: maze = new RectangularMaze(w, h); break;
+    case 1: maze = new HexagonalMaze(w); break;
+    case 2: maze = new HoneyCombMaze(w); break;
+    case 3: maze = new CircularMaze(w); break;
+    case 4: maze = new CircularHexagonMaze(w); break;
+    case 6: maze = new TriangularMaze(w); break;
+  }
+
+  const algo = new algoClasses[at](seed);
+  maze.initializeGraph();
+  maze.generateMaze(algo);
+
+  const svg = maze.renderSVG();
+  const output = document.getElementById('output');
+  output.innerHTML = '';
+  output.appendChild(svg);
+  lastSVG = svg;
+}
+
+function downloadSVG() {
+  if (!lastSVG) { generate(); }
+  const serializer = new XMLSerializer();
+  const svgStr = '<?xml version="1.0" encoding="UTF-8"?>\n' + serializer.serializeToString(lastSVG);
+  const blob = new Blob([svgStr], { type: 'image/svg+xml' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'maze.svg';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// Generate one on load
+generate();
+</script>
+</body>
+</html>
