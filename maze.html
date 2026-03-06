@@ -101,12 +101,21 @@ button.secondary:hover { background: #0f3460; }
     </div>
   </div>
   <div class="control-group">
-    <label>Theme</label>
-    <select id="theme"></select>
-  </div>
-  <div class="control-group">
     <label>Seed</label>
     <input type="text" id="seed" placeholder="random">
+  </div>
+  <div class="control-group">
+    <label>Theme</label>
+    <select id="theme">
+      <option value="classic">Classic</option>
+      <option value="blueprint">Blueprint</option>
+      <option value="neon">Neon</option>
+      <option value="dungeon">Dungeon</option>
+      <option value="ice">Ice</option>
+      <option value="retro">Retro</option>
+      <option value="parchment">Parchment</option>
+      <option value="midnight">Midnight</option>
+    </select>
   </div>
   <button onclick="generate()">Generate</button>
   <button onclick="animateMaze()" style="background:#16213e">Animate</button>
@@ -124,24 +133,13 @@ button.secondary:hover { background: #0f3460; }
 </div>
 <div class="maze-container" id="output"></div>
 
-<script src="maze-bundle.js?v=3"></script>
+<script src="maze-bundle.js?v=4"></script>
 <script>
 // All maze logic imported from shared TS source via MazeGen global
 const { RectangularMaze, HexagonalMaze, HoneyCombMaze, CircularMaze,
         CircularHexagonMaze, TriangularMaze,
         Kruskal, DepthFirstSearch, BreadthFirstSearch, LoopErasedRandomWalk, Prim,
         THEMES, getTheme } = MazeGen;
-
-// Populate theme dropdown
-(function() {
-  const sel = document.getElementById('theme');
-  for (const [key, t] of Object.entries(THEMES)) {
-    const opt = document.createElement('option');
-    opt.value = key;
-    opt.textContent = t.name;
-    sel.appendChild(opt);
-  }
-})();
 
 const algoClasses = [Kruskal, DepthFirstSearch, BreadthFirstSearch, LoopErasedRandomWalk, Prim];
 
