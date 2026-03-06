@@ -52,6 +52,11 @@ button.secondary:hover { background: #0f3460; }
   box-shadow: 0 4px 20px rgba(0,0,0,0.1);
 }
 .size-row { display: flex; gap: 8px; align-items: end; }
+.maze-wall { transition: opacity 0.2s ease-out; }
+.maze-wall.breaking { stroke: #e94560 !important; }
+.maze-wall.removed { opacity: 0; }
+.speed-slider { width: 80px; accent-color: #e94560; }
+.anim-info { font-size: 0.75em; color: #666; text-align: center; min-width: 60px; }
 @media (max-width: 600px) {
   .controls { padding: 12px; gap: 8px; }
   .control-group select, .control-group input { font-size: 16px; }
@@ -100,6 +105,11 @@ button.secondary:hover { background: #0f3460; }
     <input type="text" id="seed" placeholder="random">
   </div>
   <button onclick="generate()">Generate</button>
+  <button onclick="animate()" style="background:#16213e">Animate</button>
+  <div class="control-group">
+    <label>Speed</label>
+    <input type="range" class="speed-slider" id="speed" min="1" max="100" value="70">
+  </div>
   <button class="secondary" onclick="downloadSVG()">Save SVG</button>
 </div>
 <div class="maze-container" id="output"></div>
@@ -345,11 +355,10 @@ class Maze {
       idx=this.adjacencylist[v].findIndex(e=>e[0]===u); if(idx>=0) this.adjacencylist[v].splice(idx,1);
     }
   }
-  renderSVG() {
+  _setupSVG() {
     const [xmin,ymin,xmax,ymax]=this.getCoordinateBounds();
     const pad=1;
     const w=xmax-xmin+2*pad, h=ymax-ymin+2*pad;
-    // Adaptive scale: aim for ~600px on the long side but cap at 30
     const targetPx = Math.min(800, window.innerWidth - 40, (window.innerHeight - 200));
     const scale = Math.min(30, Math.max(4, targetPx / Math.max(w, h)));
     const svgW = Math.round(w * scale), svgH = Math.round(h * scale);
@@ -364,13 +373,34 @@ class Maze {
     rect.setAttribute('width',svgW); rect.setAttribute('height',svgH);
     rect.setAttribute('fill','white');
     g.appendChild(rect);
+    svg.appendChild(g);
+    return {svg, g, scale};
+  }
+  renderSVG() {
+    const {svg, g, scale} = this._setupSVG();
     for(let i=0;i<this.vertices;i++) {
       for(const edge of this.adjacencylist[i]) {
         if(edge[0]<i) g.appendChild(edge[1].svgEl('#1a1a2e', scale));
       }
     }
-    svg.appendChild(g);
     return svg;
+  }
+  renderSVGFull() {
+    const {svg, g, scale} = this._setupSVG();
+    const borderMap = new Map();
+    const seen = new Set();
+    for(let i=0;i<this.vertices;i++) {
+      for(const edge of this.adjacencylist[i]) {
+        const border = edge[1];
+        if(seen.has(border)) continue;
+        seen.add(border);
+        const el = border.svgEl('#1a1a2e', scale);
+        el.classList.add('maze-wall');
+        g.appendChild(el);
+        borderMap.set(border, el);
+      }
+    }
+    return {svg, borderMap};
   }
 }
 
@@ -599,8 +629,13 @@ document.getElementById('mazeType').addEventListener('change', updateSizeUI);
 updateSizeUI();
 
 let lastSVG = null;
+let animTimer = null;
 
-function generate() {
+function stopAnimation() {
+  if (animTimer !== null) { clearTimeout(animTimer); animTimer = null; }
+}
+
+function getParams() {
   const mt = parseInt(document.getElementById('mazeType').value);
   const at = parseInt(document.getElementById('algorithm').value);
   const w = parseInt(document.getElementById('width').value) || 15;
@@ -608,26 +643,94 @@ function generate() {
   const seedStr = document.getElementById('seed').value.trim();
   const seed = seedStr ? parseInt(seedStr) : (Math.random() * 0xffffffff) >>> 0;
   if (!seedStr) document.getElementById('seed').value = seed;
+  return {mt, at, w, h, seed};
+}
 
-  let maze;
+function createMaze({mt, w, h}) {
   switch(mt) {
-    case 0: maze = new RectangularMaze(w, h); break;
-    case 1: maze = new HexagonalMaze(w); break;
-    case 2: maze = new HoneyCombMaze(w); break;
-    case 3: maze = new CircularMaze(w); break;
-    case 4: maze = new CircularHexagonMaze(w); break;
-    case 6: maze = new TriangularMaze(w); break;
+    case 0: return new RectangularMaze(w, h);
+    case 1: return new HexagonalMaze(w);
+    case 2: return new HoneyCombMaze(w);
+    case 3: return new CircularMaze(w);
+    case 4: return new CircularHexagonMaze(w);
+    case 6: return new TriangularMaze(w);
   }
+}
 
-  const algo = new algoClasses[at](seed);
+function generate() {
+  stopAnimation();
+  const params = getParams();
+  const maze = createMaze(params);
+  const algo = new algoClasses[params.at](params.seed);
   maze.initializeGraph();
   maze.generateMaze(algo);
-
   const svg = maze.renderSVG();
   const output = document.getElementById('output');
   output.innerHTML = '';
   output.appendChild(svg);
   lastSVG = svg;
+}
+
+function animate() {
+  stopAnimation();
+  const params = getParams();
+  const maze = createMaze(params);
+  maze.initializeGraph();
+
+  // Run algorithm to get spanning tree edges (in construction order)
+  const algo = new algoClasses[params.at](params.seed);
+  const edges = algo.spanningTree(maze.vertices, maze.adjacencylist);
+
+  // Build map from edge pair to border object
+  const edgeToBorder = new Map();
+  for (let i = 0; i < maze.vertices; i++) {
+    for (const [neighbor, border] of maze.adjacencylist[i]) {
+      if (neighbor >= 0) {
+        const key = Math.min(i, neighbor) + ',' + Math.max(i, neighbor);
+        if (!edgeToBorder.has(key)) edgeToBorder.set(key, border);
+      }
+    }
+  }
+
+  // Render full grid (all walls visible)
+  const {svg, borderMap} = maze.renderSVGFull();
+  const output = document.getElementById('output');
+  output.innerHTML = '';
+  output.appendChild(svg);
+  lastSVG = svg;
+
+  // Animate wall removal
+  let step = 0;
+  const totalEdges = edges.length;
+
+  function animStep() {
+    if (step >= totalEdges) { animTimer = null; return; }
+
+    // Speed slider: 1=slow (200ms), 100=fast (5ms)
+    const speedVal = parseInt(document.getElementById('speed').value);
+    const delay = Math.round(200 - (speedVal - 1) * 195 / 99);
+
+    // Allow batch steps at high speed
+    const batch = delay <= 15 ? 3 : delay <= 30 ? 2 : 1;
+
+    for (let b = 0; b < batch && step < totalEdges; b++, step++) {
+      const [u, v] = edges[step];
+      const key = Math.min(u, v) + ',' + Math.max(u, v);
+      const border = edgeToBorder.get(key);
+      if (border) {
+        const el = borderMap.get(border);
+        if (el) {
+          el.classList.add('breaking');
+          // Schedule fade-out
+          setTimeout(() => { el.classList.add('removed'); }, Math.min(delay, 100));
+        }
+      }
+    }
+    animTimer = setTimeout(animStep, delay);
+  }
+
+  // Start after a brief pause so the full grid is visible
+  animTimer = setTimeout(animStep, 400);
 }
 
 function downloadSVG() {
