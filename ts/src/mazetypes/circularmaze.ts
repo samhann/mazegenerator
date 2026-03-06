@@ -129,93 +129,90 @@ export class CircularMaze extends Maze {
             p.setAttribute('fill', 'none');
             g.appendChild(p);
           } else {
-            // Radial connection: route through a waypoint at the shared boundary
-            // The boundary between ring i and ring i-1 is at radius i (the larger ring index)
+            // Radial connection: the boundary between ring i and ring i-1 is at radius i
             const outerRing = Math.max(ringU, ringV);
             const outerIdx = ringU > ringV ? idxU : idxV;
             const outerCount = this.ringnodecount[outerRing];
+            const innerRing = Math.min(ringU, ringV);
+            const innerIdx = ringU < ringV ? idxU : idxV;
             const innerVertex = ringU < ringV ? u : v;
+            const outerVertex = ringU > ringV ? u : v;
 
-            // Waypoint: at boundary radius, at the outer cell's mid-angle
             const outerMidAngle = (outerIdx + 0.5) * 2 * M_PI / outerCount - M_PI / 2;
-            const boundaryRadius = outerRing;
-            const wx = boundaryRadius * Math.cos(outerMidAngle) * scale;
-            const wy = boundaryRadius * Math.sin(outerMidAngle) * scale;
 
-            const [x1, y1] = this.getCellCenter(u);
-            const [x2, y2] = this.getCellCenter(v);
-
-            // Draw outer cell center -> waypoint
+            // Step 1: outer cell center -> boundary at outer cell's angle (radial line)
+            const [ox, oy] = this.getCellCenter(outerVertex);
+            const bx = outerRing * Math.cos(outerMidAngle) * scale;
+            const by = outerRing * Math.sin(outerMidAngle) * scale;
             const l1 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-            l1.setAttribute('x1', String(x1 * scale));
-            l1.setAttribute('y1', String(y1 * scale));
-            l1.setAttribute('x2', String(wx));
-            l1.setAttribute('y2', String(wy));
+            l1.setAttribute('x1', String(ox * scale));
+            l1.setAttribute('y1', String(oy * scale));
+            l1.setAttribute('x2', String(bx));
+            l1.setAttribute('y2', String(by));
             l1.setAttribute('stroke', strokeColor);
             l1.setAttribute('stroke-width', strokeWidth);
             l1.setAttribute('stroke-linecap', 'round');
             g.appendChild(l1);
 
-            // Draw waypoint -> inner cell center
-            // If inner cell is ring 0 (center), just go straight
             if (innerVertex === 0) {
+              // Inner cell is center: straight line from boundary to (0,0)
               const l2 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-              l2.setAttribute('x1', String(wx));
-              l2.setAttribute('y1', String(wy));
-              l2.setAttribute('x2', String(x2 * scale));
-              l2.setAttribute('y2', String(y2 * scale));
+              l2.setAttribute('x1', String(bx));
+              l2.setAttribute('y1', String(by));
+              l2.setAttribute('x2', '0');
+              l2.setAttribute('y2', '0');
               l2.setAttribute('stroke', strokeColor);
               l2.setAttribute('stroke-width', strokeWidth);
               l2.setAttribute('stroke-linecap', 'round');
               g.appendChild(l2);
             } else {
-              // Inner cell: arc from waypoint angle to inner cell's mid-angle at boundary radius,
-              // then radial line to inner cell center
-              const innerRing = Math.min(ringU, ringV);
-              const innerIdx = ringU < ringV ? idxU : idxV;
               const innerCount = this.ringnodecount[innerRing];
               const innerMidAngle = (innerIdx + 0.5) * 2 * M_PI / innerCount - M_PI / 2;
+              const innerMidRadius = innerRing + 0.5;
 
-              // Check if angles differ enough to need an arc
-              const angleDiff = Math.abs(outerMidAngle - innerMidAngle);
-              if (angleDiff > 0.001 && angleDiff < 2 * M_PI - 0.001) {
-                // Arc along boundary radius from outer angle to inner angle
-                const ax1 = boundaryRadius * Math.cos(outerMidAngle) * scale;
-                const ay1 = boundaryRadius * Math.sin(outerMidAngle) * scale;
-                const ax2 = boundaryRadius * Math.cos(innerMidAngle) * scale;
-                const ay2 = boundaryRadius * Math.sin(innerMidAngle) * scale;
-                const r = boundaryRadius * scale;
+              let angleDiff = Math.abs(outerMidAngle - innerMidAngle);
+              if (angleDiff > M_PI) angleDiff = 2 * M_PI - angleDiff;
+
+              if (angleDiff > 0.001) {
+                // Angles differ: go radially inward to inner mid-radius at outer's angle,
+                // then arc within the inner cell to its center
+                const mx = innerMidRadius * Math.cos(outerMidAngle) * scale;
+                const my = innerMidRadius * Math.sin(outerMidAngle) * scale;
+
+                // Step 2: boundary -> inner mid-radius at same angle (radial, within inner cell)
+                const l2 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                l2.setAttribute('x1', String(bx));
+                l2.setAttribute('y1', String(by));
+                l2.setAttribute('x2', String(mx));
+                l2.setAttribute('y2', String(my));
+                l2.setAttribute('stroke', strokeColor);
+                l2.setAttribute('stroke-width', strokeWidth);
+                l2.setAttribute('stroke-linecap', 'round');
+                g.appendChild(l2);
+
+                // Step 3: arc at inner mid-radius from outer angle to inner cell center angle
+                const [ix, iy] = this.getCellCenter(innerVertex);
+                const r = innerMidRadius * scale;
                 let sweep = 1;
                 let diff = innerMidAngle - outerMidAngle;
                 if (diff < -M_PI) diff += 2 * M_PI;
                 if (diff > M_PI) diff -= 2 * M_PI;
                 if (diff < 0) sweep = 0;
                 const arc = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                arc.setAttribute('d', `M ${ax1} ${ay1} A ${r} ${r} 0 0 ${sweep} ${ax2} ${ay2}`);
+                arc.setAttribute('d', `M ${mx} ${my} A ${r} ${r} 0 0 ${sweep} ${ix * scale} ${iy * scale}`);
                 arc.setAttribute('stroke', strokeColor);
                 arc.setAttribute('stroke-width', strokeWidth);
                 arc.setAttribute('stroke-linecap', 'round');
                 arc.setAttribute('fill', 'none');
                 g.appendChild(arc);
-
-                // Radial line from arc endpoint to inner cell center
-                const innerCenter = this.getCellCenter(innerVertex === u ? u : v);
-                const l2 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                l2.setAttribute('x1', String(ax2));
-                l2.setAttribute('y1', String(ay2));
-                l2.setAttribute('x2', String(innerCenter[0] * scale));
-                l2.setAttribute('y2', String(innerCenter[1] * scale));
-                l2.setAttribute('stroke', strokeColor);
-                l2.setAttribute('stroke-width', strokeWidth);
-                l2.setAttribute('stroke-linecap', 'round');
-                g.appendChild(l2);
               } else {
-                // Angles are close enough, straight line is fine
+                // Angles match: straight line through boundary to inner center
+                const [ix, iy] = this.getCellCenter(innerVertex);
                 const l2 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                l2.setAttribute('x1', String(wx));
-                l2.setAttribute('y1', String(wy));
-                l2.setAttribute('x2', String(x2 * scale));
-                l2.setAttribute('y2', String(y2 * scale));
+                l2.setAttribute('x1', String(bx));
+                l2.setAttribute('y1', String(by));
+                l2.setAttribute('x2', String(ix * scale));
+                l2.setAttribute('y2', String(iy * scale));
                 l2.setAttribute('stroke', strokeColor);
                 l2.setAttribute('stroke-width', strokeWidth);
                 l2.setAttribute('stroke-linecap', 'round');
