@@ -93,6 +93,16 @@ export class TriangularMaze extends Maze {
     }
   }
 
+  getCellCenter(vertex: number): [number, number] {
+    let row = 0;
+    let remaining = vertex;
+    while (remaining >= this.cellsInRow(row)) {
+      remaining -= this.cellsInRow(row);
+      row++;
+    }
+    return [remaining + 0.5, row + 0.5];
+  }
+
   getCoordinateBounds(): [number, number, number, number] {
     return [0, 0, this.rows, this.rows];
   }

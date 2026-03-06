@@ -8,6 +8,7 @@
   },
   "scripts": {
     "build": "tsc",
+    "build:web": "npx esbuild src/web.ts --bundle --format=iife --global-name=MazeGen --outfile=../maze-bundle.js --platform=browser",
     "start": "node dist/main.js",
     "test": "node dist/test-oracle.js"
   },

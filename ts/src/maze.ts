@@ -1,7 +1,9 @@
 import { CellBorder } from "./cellborder";
 import { SpanningTreeAlgorithm } from "./spanningtreealgorithm";
 import { DepthFirstSearch } from "./algorithms/depthfirstsearch";
-import * as fs from "fs";
+// fs is only used by CLI (printMazeSVG), not by the browser bundle
+let fs: any;
+try { fs = require("fs"); } catch (_) { /* browser */ }
 
 export type Edge = [number, CellBorder]; // [destination vertex, border]
 export type Graph = Edge[][];
@@ -116,6 +118,83 @@ export abstract class Maze {
     svg += `</svg>\n`;
 
     fs.writeFileSync(outputprefix + ".svg", svg);
+  }
+
+  // ===== Browser rendering (used by web bundle) =====
+
+  private _setupSVG(): { svg: any; g: any; scale: number } {
+    const [xmin, ymin, xmax, ymax] = this.getCoordinateBounds();
+    const pad = 1;
+    const w = xmax - xmin + 2 * pad, h = ymax - ymin + 2 * pad;
+    const targetPx = Math.min(800, window.innerWidth - 40, window.innerHeight - 200);
+    const scale = Math.min(30, Math.max(4, targetPx / Math.max(w, h)));
+    const svgW = Math.round(w * scale), svgH = Math.round(h * scale);
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', String(svgW));
+    svg.setAttribute('height', String(svgH));
+    svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    svg.setAttribute('viewBox', `0 0 ${svgW} ${svgH}`);
+    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.setAttribute('transform', `translate(${(pad - xmin) * scale},${svgH - (pad - ymin) * scale}) scale(1,-1)`);
+    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    rect.setAttribute('x', String((xmin - pad) * scale));
+    rect.setAttribute('y', String((ymin - pad) * scale));
+    rect.setAttribute('width', String(svgW));
+    rect.setAttribute('height', String(svgH));
+    rect.setAttribute('fill', 'white');
+    g.appendChild(rect);
+    svg.appendChild(g);
+    return { svg, g, scale };
+  }
+
+  renderSolution(g: any, scale: number): void {
+    for (let u = 0; u < this.vertices; u++) {
+      for (const edge of this.solution[u]) {
+        const v = edge[0];
+        try {
+          const [x1, y1] = this.getCellCenter(u);
+          const [x2, y2] = this.getCellCenter(v);
+          const l = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          l.setAttribute('x1', String(x1 * scale));
+          l.setAttribute('y1', String(y1 * scale));
+          l.setAttribute('x2', String(x2 * scale));
+          l.setAttribute('y2', String(y2 * scale));
+          l.setAttribute('stroke', '#e94560');
+          l.setAttribute('stroke-width', String(Math.max(2, scale / 10)));
+          l.setAttribute('stroke-linecap', 'round');
+          g.appendChild(l);
+        } catch (_) { /* getCellCenter not implemented yet */ }
+      }
+    }
+  }
+
+  renderSVG(showSolution: boolean = false): any {
+    const { svg, g, scale } = this._setupSVG();
+    for (let i = 0; i < this.vertices; i++) {
+      for (const edge of this.adjacencylist[i]) {
+        if (edge[0] < i) g.appendChild(edge[1].svgEl('#1a1a2e', scale));
+      }
+    }
+    if (showSolution) this.renderSolution(g, scale);
+    return svg;
+  }
+
+  renderSVGFull(): { svg: any; borderMap: Map<CellBorder, any> } {
+    const { svg, g, scale } = this._setupSVG();
+    const borderMap = new Map<CellBorder, any>();
+    const seen = new Set<CellBorder>();
+    for (let i = 0; i < this.vertices; i++) {
+      for (const edge of this.adjacencylist[i]) {
+        const border = edge[1];
+        if (seen.has(border)) continue;
+        seen.add(border);
+        const el = border.svgEl('#1a1a2e', scale);
+        el.classList.add('maze-wall');
+        g.appendChild(el);
+        borderMap.set(border, el);
+      }
+    }
+    return { svg, borderMap };
   }
 
   abstract getCoordinateBounds(): [number, number, number, number];

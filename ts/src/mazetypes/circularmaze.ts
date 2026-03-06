@@ -64,6 +64,23 @@ export class CircularMaze extends Maze {
     }
   }
 
+  getCellCenter(vertex: number): [number, number] {
+    // Ring 0 is the single center cell
+    if (vertex === 0) return [0, 0];
+    // Find which ring and cell
+    for (let i = 1; i < this.size; i++) {
+      const start = this.ringnodeprefixsum[i];
+      const count = this.ringnodecount[i];
+      if (vertex >= start && vertex < start + count) {
+        const j = vertex - start;
+        const midAngle = (j + 0.5) * 2 * M_PI / count - M_PI / 2;
+        const midRadius = i + 0.5;
+        return [midRadius * Math.cos(midAngle), midRadius * Math.sin(midAngle)];
+      }
+    }
+    throw new Error("Invalid vertex");
+  }
+
   getCoordinateBounds(): [number, number, number, number] {
     return [-this.size, -this.size, this.size, this.size];
   }

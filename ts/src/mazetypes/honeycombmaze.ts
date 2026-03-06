@@ -63,6 +63,21 @@ export class HoneyCombMaze extends Maze {
     }
   }
 
+  getCellCenter(vertex: number): [number, number] {
+    // Invert vertexIndex: iterate over all (u,v) to find the match
+    for (let u = -this.size + 1; u < this.size; u++) {
+      const [vmin, vmax] = this.vExtent(u);
+      for (let v = vmin; v <= vmax; v++) {
+        if (this.vertexIndex(u, v) === vertex) {
+          const dxu = Math.sqrt(3) / 2, dxv = Math.sqrt(3);
+          const dyu = 1.5;
+          return [dxu * u + dxv * v, dyu * u];
+        }
+      }
+    }
+    throw new Error("Invalid vertex");
+  }
+
   getCoordinateBounds(): [number, number, number, number] {
     const xlim = Math.sqrt(3) * (this.size - 0.5), ylim = 1.5 * this.size - 0.5;
     return [-xlim, -ylim, xlim, ylim];

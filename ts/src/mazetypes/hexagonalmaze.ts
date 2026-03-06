@@ -117,6 +117,41 @@ export class HexagonalMaze extends Maze {
     }
   }
 
+  getCellCenter(vertex: number): [number, number] {
+    const sz = this.size;
+    const sector = Math.floor(vertex / (sz * sz));
+    let rem = vertex - sector * sz * sz;
+    const halfCount = (sz * (sz + 1)) / 2;
+    let ud: number, row: number, col: number;
+    if (rem < halfCount) {
+      ud = 0;
+      row = 0;
+      while ((row + 1) * (row + 2) / 2 <= rem) row++;
+      col = rem - (row * (row + 1)) / 2;
+    } else {
+      ud = 1;
+      rem -= halfCount;
+      row = 0;
+      while ((row + 1) * (row + 2) / 2 <= rem) row++;
+      col = rem - (row * (row + 1)) / 2;
+    }
+
+    const dx12 = -0.5 / sz, dy12 = -Math.sqrt(3) / 2 / sz;
+    const dx23 = 1.0 / sz;
+    let lx: number, ly: number;
+    if (ud === 0) {
+      lx = dx12 * (row + 2 / 3) + dx23 * (col + 1 / 3);
+      ly = dy12 * (row + 2 / 3);
+    } else {
+      lx = dx12 * (row + 4 / 3) + dx23 * (col + 2 / 3);
+      ly = dy12 * (row + 4 / 3);
+    }
+
+    const theta = sector * M_PI / 3;
+    const cos = Math.cos(theta), sin = Math.sin(theta);
+    return [lx * cos - ly * sin, lx * sin + ly * cos];
+  }
+
   getCoordinateBounds(): [number, number, number, number] {
     return [-this.size, -Math.sqrt(3) / 2 * this.size, this.size, Math.sqrt(3) / 2 * this.size];
   }
