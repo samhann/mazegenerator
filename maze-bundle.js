@@ -652,8 +652,8 @@ var MazeGen = (() => {
     constructor(size) {
       super(6 * size * size);
       this.size = size;
-      this.startvertex = this.vertexIndex(0, 1, size - 1, 0);
-      this.endvertex = this.vertexIndex(3, 1, size - 1, 0);
+      this.startvertex = this.vertexIndex(0, 0, size - 1, 0);
+      this.endvertex = this.vertexIndex(3, 0, size - 1, 0);
     }
     vertexIndex(sector, updown, row, column) {
       let vertexindex = sector * this.size * this.size;
