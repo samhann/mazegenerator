@@ -1,6 +1,7 @@
 import { CellBorder } from "./cellborder";
 import { SpanningTreeAlgorithm } from "./spanningtreealgorithm";
 import { DepthFirstSearch } from "./algorithms/depthfirstsearch";
+import { MazeTheme, getTheme } from "./themes";
 // fs is only used by CLI (printMazeSVG), not by the browser bundle
 let fs: any;
 try { fs = require("fs"); } catch (_) { /* browser */ }
@@ -122,7 +123,7 @@ export abstract class Maze {
 
   // ===== Browser rendering (used by web bundle) =====
 
-  private _setupSVG(): { svg: any; g: any; scale: number } {
+  private _setupSVG(theme?: MazeTheme): { svg: any; g: any; scale: number } {
     const [xmin, ymin, xmax, ymax] = this.getCoordinateBounds();
     const pad = 1;
     const w = xmax - xmin + 2 * pad, h = ymax - ymin + 2 * pad;
@@ -141,13 +142,13 @@ export abstract class Maze {
     rect.setAttribute('y', String((ymin - pad) * scale));
     rect.setAttribute('width', String(svgW));
     rect.setAttribute('height', String(svgH));
-    rect.setAttribute('fill', 'white');
+    rect.setAttribute('fill', theme ? theme.backgroundColor : 'white');
     g.appendChild(rect);
     svg.appendChild(g);
     return { svg, g, scale };
   }
 
-  renderSolution(g: any, scale: number): void {
+  renderSolution(g: any, scale: number, theme?: MazeTheme): void {
     for (let u = 0; u < this.vertices; u++) {
       for (const edge of this.solution[u]) {
         const v = edge[0];
@@ -159,7 +160,7 @@ export abstract class Maze {
           l.setAttribute('y1', String(y1 * scale));
           l.setAttribute('x2', String(x2 * scale));
           l.setAttribute('y2', String(y2 * scale));
-          l.setAttribute('stroke', '#e94560');
+          l.setAttribute('stroke', theme ? theme.solutionColor : '#e94560');
           l.setAttribute('stroke-width', String(Math.max(2, scale / 10)));
           l.setAttribute('stroke-linecap', 'round');
           g.appendChild(l);
@@ -168,19 +169,21 @@ export abstract class Maze {
     }
   }
 
-  renderSVG(showSolution: boolean = false): any {
-    const { svg, g, scale } = this._setupSVG();
+  renderSVG(showSolution: boolean = false, themeName?: string): any {
+    const theme = getTheme(themeName || 'classic');
+    const { svg, g, scale } = this._setupSVG(theme);
     for (let i = 0; i < this.vertices; i++) {
       for (const edge of this.adjacencylist[i]) {
-        if (edge[0] < i) g.appendChild(edge[1].svgEl('#1a1a2e', scale));
+        if (edge[0] < i) g.appendChild(edge[1].svgEl(theme.wallColor, scale));
       }
     }
-    if (showSolution) this.renderSolution(g, scale);
+    if (showSolution) this.renderSolution(g, scale, theme);
     return svg;
   }
 
-  renderSVGFull(): { svg: any; borderMap: Map<CellBorder, any> } {
-    const { svg, g, scale } = this._setupSVG();
+  renderSVGFull(themeName?: string): { svg: any; borderMap: Map<CellBorder, any> } {
+    const theme = getTheme(themeName || 'classic');
+    const { svg, g, scale } = this._setupSVG(theme);
     const borderMap = new Map<CellBorder, any>();
     const seen = new Set<CellBorder>();
     for (let i = 0; i < this.vertices; i++) {
@@ -188,7 +191,7 @@ export abstract class Maze {
         const border = edge[1];
         if (seen.has(border)) continue;
         seen.add(border);
-        const el = border.svgEl('#1a1a2e', scale);
+        const el = border.svgEl(theme.wallColor, scale);
         el.classList.add('maze-wall');
         g.appendChild(el);
         borderMap.set(border, el);

@@ -48,7 +48,7 @@ button.secondary:hover { background: #0f3460; }
 }
 .maze-container svg {
   max-width: 100%; max-height: 70vh; height: auto;
-  background: #fff; border-radius: 8px;
+  border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.1);
 }
 .size-row { display: flex; gap: 8px; align-items: end; }
@@ -101,6 +101,10 @@ button.secondary:hover { background: #0f3460; }
     </div>
   </div>
   <div class="control-group">
+    <label>Theme</label>
+    <select id="theme"></select>
+  </div>
+  <div class="control-group">
     <label>Seed</label>
     <input type="text" id="seed" placeholder="random">
   </div>
@@ -125,7 +129,19 @@ button.secondary:hover { background: #0f3460; }
 // All maze logic imported from shared TS source via MazeGen global
 const { RectangularMaze, HexagonalMaze, HoneyCombMaze, CircularMaze,
         CircularHexagonMaze, TriangularMaze,
-        Kruskal, DepthFirstSearch, BreadthFirstSearch, LoopErasedRandomWalk, Prim } = MazeGen;
+        Kruskal, DepthFirstSearch, BreadthFirstSearch, LoopErasedRandomWalk, Prim,
+        THEMES, getTheme } = MazeGen;
+
+// Populate theme dropdown
+(function() {
+  const sel = document.getElementById('theme');
+  for (const [key, t] of Object.entries(THEMES)) {
+    const opt = document.createElement('option');
+    opt.value = key;
+    opt.textContent = t.name;
+    sel.appendChild(opt);
+  }
+})();
 
 const algoClasses = [Kruskal, DepthFirstSearch, BreadthFirstSearch, LoopErasedRandomWalk, Prim];
 
@@ -156,7 +172,8 @@ function getParams() {
   const seedStr = document.getElementById('seed').value.trim();
   const seed = seedStr ? parseInt(seedStr) : (Math.random() * 0xffffffff) >>> 0;
   if (!seedStr) document.getElementById('seed').value = seed;
-  return {mt, at, w, h, seed};
+  const themeName = document.getElementById('theme').value;
+  return {mt, at, w, h, seed, themeName};
 }
 
 function createMaze({mt, w, h}) {
@@ -179,7 +196,7 @@ function generate() {
   maze.generateMaze(algo);
   lastMaze = maze;
   const showSol = document.getElementById('showSolution').checked;
-  const svg = maze.renderSVG(showSol);
+  const svg = maze.renderSVG(showSol, params.themeName);
   const output = document.getElementById('output');
   output.innerHTML = '';
   output.appendChild(svg);
@@ -205,7 +222,8 @@ function animateMaze() {
     }
   }
 
-  const {svg, borderMap} = maze.renderSVGFull();
+  const theme = getTheme(params.themeName);
+  const {svg, borderMap} = maze.renderSVGFull(params.themeName);
   const output = document.getElementById('output');
   output.innerHTML = '';
   output.appendChild(svg);
@@ -229,7 +247,7 @@ function animateMaze() {
       if (border) {
         const el = borderMap.get(border);
         if (el) {
-          el.classList.add('breaking');
+          el.setAttribute('stroke', theme.breakColor);
           setTimeout(() => { el.classList.add('removed'); }, Math.min(delay, 100));
         }
       }
@@ -254,7 +272,19 @@ function downloadSVG() {
 
 document.getElementById('showSolution').addEventListener('change', function() {
   if (!lastMaze) return;
-  const svg = lastMaze.renderSVG(this.checked);
+  const themeName = document.getElementById('theme').value;
+  const svg = lastMaze.renderSVG(this.checked, themeName);
+  const output = document.getElementById('output');
+  output.innerHTML = '';
+  output.appendChild(svg);
+  lastSVG = svg;
+});
+
+// Re-render when theme changes
+document.getElementById('theme').addEventListener('change', function() {
+  if (!lastMaze) return;
+  const showSol = document.getElementById('showSolution').checked;
+  const svg = lastMaze.renderSVG(showSol, this.value);
   const output = document.getElementById('output');
   output.innerHTML = '';
   output.appendChild(svg);

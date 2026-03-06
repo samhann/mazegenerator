@@ -14,3 +14,5 @@ export { HoneyCombMaze } from "./mazetypes/honeycombmaze";
 export { CircularMaze } from "./mazetypes/circularmaze";
 export { CircularHexagonMaze } from "./mazetypes/circularhexagonmaze";
 export { TriangularMaze } from "./mazetypes/triangularmaze";
+export { THEMES, getTheme } from "./themes";
+export type { MazeTheme } from "./themes";

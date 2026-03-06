@@ -39,7 +39,9 @@ var MazeGen = (() => {
     Prim: () => Prim,
     RectangularMaze: () => RectangularMaze,
     SpanningTreeAlgorithm: () => SpanningTreeAlgorithm,
-    TriangularMaze: () => TriangularMaze
+    THEMES: () => THEMES,
+    TriangularMaze: () => TriangularMaze,
+    getTheme: () => getTheme
   });
 
   // src/mt19937.ts
@@ -213,6 +215,69 @@ var MazeGen = (() => {
     }
   };
 
+  // src/themes.ts
+  var THEMES = {
+    classic: {
+      name: "Classic",
+      wallColor: "#1a1a2e",
+      backgroundColor: "#ffffff",
+      solutionColor: "#e94560",
+      breakColor: "#e94560"
+    },
+    blueprint: {
+      name: "Blueprint",
+      wallColor: "#e8e8ff",
+      backgroundColor: "#1e3a5f",
+      solutionColor: "#ffdd57",
+      breakColor: "#ff6b6b"
+    },
+    neon: {
+      name: "Neon",
+      wallColor: "#39ff14",
+      backgroundColor: "#0a0a0a",
+      solutionColor: "#ff00ff",
+      breakColor: "#00ffff"
+    },
+    dungeon: {
+      name: "Dungeon",
+      wallColor: "#8b7355",
+      backgroundColor: "#2c1e0f",
+      solutionColor: "#ffd700",
+      breakColor: "#ff4500"
+    },
+    ice: {
+      name: "Ice",
+      wallColor: "#4a90d9",
+      backgroundColor: "#e8f4fd",
+      solutionColor: "#ff6b6b",
+      breakColor: "#00bcd4"
+    },
+    retro: {
+      name: "Retro",
+      wallColor: "#33ff33",
+      backgroundColor: "#000000",
+      solutionColor: "#ff3333",
+      breakColor: "#ffff33"
+    },
+    parchment: {
+      name: "Parchment",
+      wallColor: "#5c4033",
+      backgroundColor: "#f5e6c8",
+      solutionColor: "#8b0000",
+      breakColor: "#cc6600"
+    },
+    midnight: {
+      name: "Midnight",
+      wallColor: "#7c3aed",
+      backgroundColor: "#0f0f23",
+      solutionColor: "#f472b6",
+      breakColor: "#38bdf8"
+    }
+  };
+  function getTheme(name) {
+    return THEMES[name] || THEMES.classic;
+  }
+
   // src/maze.ts
   var fs;
   try {
@@ -314,7 +379,7 @@ var MazeGen = (() => {
       fs.writeFileSync(outputprefix + ".svg", svg);
     }
     // ===== Browser rendering (used by web bundle) =====
-    _setupSVG() {
+    _setupSVG(theme) {
       const [xmin, ymin, xmax, ymax] = this.getCoordinateBounds();
       const pad = 1;
       const w = xmax - xmin + 2 * pad, h = ymax - ymin + 2 * pad;
@@ -333,12 +398,12 @@ var MazeGen = (() => {
       rect.setAttribute("y", String((ymin - pad) * scale));
       rect.setAttribute("width", String(svgW));
       rect.setAttribute("height", String(svgH));
-      rect.setAttribute("fill", "white");
+      rect.setAttribute("fill", theme ? theme.backgroundColor : "white");
       g.appendChild(rect);
       svg.appendChild(g);
       return { svg, g, scale };
     }
-    renderSolution(g, scale) {
+    renderSolution(g, scale, theme) {
       for (let u = 0; u < this.vertices; u++) {
         for (const edge of this.solution[u]) {
           const v = edge[0];
@@ -350,7 +415,7 @@ var MazeGen = (() => {
             l.setAttribute("y1", String(y1 * scale));
             l.setAttribute("x2", String(x2 * scale));
             l.setAttribute("y2", String(y2 * scale));
-            l.setAttribute("stroke", "#e94560");
+            l.setAttribute("stroke", theme ? theme.solutionColor : "#e94560");
             l.setAttribute("stroke-width", String(Math.max(2, scale / 10)));
             l.setAttribute("stroke-linecap", "round");
             g.appendChild(l);
@@ -359,18 +424,20 @@ var MazeGen = (() => {
         }
       }
     }
-    renderSVG(showSolution = false) {
-      const { svg, g, scale } = this._setupSVG();
+    renderSVG(showSolution = false, themeName) {
+      const theme = getTheme(themeName || "classic");
+      const { svg, g, scale } = this._setupSVG(theme);
       for (let i = 0; i < this.vertices; i++) {
         for (const edge of this.adjacencylist[i]) {
-          if (edge[0] < i) g.appendChild(edge[1].svgEl("#1a1a2e", scale));
+          if (edge[0] < i) g.appendChild(edge[1].svgEl(theme.wallColor, scale));
         }
       }
-      if (showSolution) this.renderSolution(g, scale);
+      if (showSolution) this.renderSolution(g, scale, theme);
       return svg;
     }
-    renderSVGFull() {
-      const { svg, g, scale } = this._setupSVG();
+    renderSVGFull(themeName) {
+      const theme = getTheme(themeName || "classic");
+      const { svg, g, scale } = this._setupSVG(theme);
       const borderMap = /* @__PURE__ */ new Map();
       const seen = /* @__PURE__ */ new Set();
       for (let i = 0; i < this.vertices; i++) {
@@ -378,7 +445,7 @@ var MazeGen = (() => {
           const border = edge[1];
           if (seen.has(border)) continue;
           seen.add(border);
-          const el = border.svgEl("#1a1a2e", scale);
+          const el = border.svgEl(theme.wallColor, scale);
           el.classList.add("maze-wall");
           g.appendChild(el);
           borderMap.set(border, el);
@@ -923,6 +990,130 @@ var MazeGen = (() => {
         }
       }
       throw new Error("Invalid vertex");
+    }
+    getCellRingAndIndex(vertex) {
+      if (vertex === 0) return [0, 0];
+      for (let i = 1; i < this.size; i++) {
+        const start = this.ringnodeprefixsum[i];
+        const count = this.ringnodecount[i];
+        if (vertex >= start && vertex < start + count) {
+          return [i, vertex - start];
+        }
+      }
+      throw new Error("Invalid vertex");
+    }
+    renderSolution(g, scale) {
+      const strokeColor = "#e94560";
+      const strokeWidth = String(Math.max(2, scale / 10));
+      for (let u = 0; u < this.vertices; u++) {
+        for (const edge of this.solution[u]) {
+          const v = edge[0];
+          try {
+            const [ringU, idxU] = this.getCellRingAndIndex(u);
+            const [ringV, idxV] = this.getCellRingAndIndex(v);
+            if (ringU === ringV) {
+              const count = this.ringnodecount[ringU];
+              const midRadius = ringU + 0.5;
+              const angleU = (idxU + 0.5) * 2 * M_PI3 / count - M_PI3 / 2;
+              const angleV = (idxV + 0.5) * 2 * M_PI3 / count - M_PI3 / 2;
+              const x1 = midRadius * Math.cos(angleU) * scale;
+              const y1 = midRadius * Math.sin(angleU) * scale;
+              const x2 = midRadius * Math.cos(angleV) * scale;
+              const y2 = midRadius * Math.sin(angleV) * scale;
+              const r = midRadius * scale;
+              let sweep = 1;
+              let diff = angleV - angleU;
+              if (diff < -M_PI3) diff += 2 * M_PI3;
+              if (diff > M_PI3) diff -= 2 * M_PI3;
+              if (diff < 0) sweep = 0;
+              const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+              p.setAttribute("d", `M ${x1} ${y1} A ${r} ${r} 0 0 ${sweep} ${x2} ${y2}`);
+              p.setAttribute("stroke", strokeColor);
+              p.setAttribute("stroke-width", strokeWidth);
+              p.setAttribute("stroke-linecap", "round");
+              p.setAttribute("fill", "none");
+              g.appendChild(p);
+            } else {
+              const outerRing = Math.max(ringU, ringV);
+              const outerIdx = ringU > ringV ? idxU : idxV;
+              const outerCount = this.ringnodecount[outerRing];
+              const innerRing = Math.min(ringU, ringV);
+              const innerIdx = ringU < ringV ? idxU : idxV;
+              const innerVertex = ringU < ringV ? u : v;
+              const outerVertex = ringU > ringV ? u : v;
+              const outerMidAngle = (outerIdx + 0.5) * 2 * M_PI3 / outerCount - M_PI3 / 2;
+              const [ox, oy] = this.getCellCenter(outerVertex);
+              const bx = outerRing * Math.cos(outerMidAngle) * scale;
+              const by = outerRing * Math.sin(outerMidAngle) * scale;
+              const l1 = document.createElementNS("http://www.w3.org/2000/svg", "line");
+              l1.setAttribute("x1", String(ox * scale));
+              l1.setAttribute("y1", String(oy * scale));
+              l1.setAttribute("x2", String(bx));
+              l1.setAttribute("y2", String(by));
+              l1.setAttribute("stroke", strokeColor);
+              l1.setAttribute("stroke-width", strokeWidth);
+              l1.setAttribute("stroke-linecap", "round");
+              g.appendChild(l1);
+              if (innerVertex === 0) {
+                const l2 = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                l2.setAttribute("x1", String(bx));
+                l2.setAttribute("y1", String(by));
+                l2.setAttribute("x2", "0");
+                l2.setAttribute("y2", "0");
+                l2.setAttribute("stroke", strokeColor);
+                l2.setAttribute("stroke-width", strokeWidth);
+                l2.setAttribute("stroke-linecap", "round");
+                g.appendChild(l2);
+              } else {
+                const innerCount = this.ringnodecount[innerRing];
+                const innerMidAngle = (innerIdx + 0.5) * 2 * M_PI3 / innerCount - M_PI3 / 2;
+                const innerMidRadius = innerRing + 0.5;
+                let angleDiff = Math.abs(outerMidAngle - innerMidAngle);
+                if (angleDiff > M_PI3) angleDiff = 2 * M_PI3 - angleDiff;
+                if (angleDiff > 1e-3) {
+                  const mx = innerMidRadius * Math.cos(outerMidAngle) * scale;
+                  const my = innerMidRadius * Math.sin(outerMidAngle) * scale;
+                  const l2 = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                  l2.setAttribute("x1", String(bx));
+                  l2.setAttribute("y1", String(by));
+                  l2.setAttribute("x2", String(mx));
+                  l2.setAttribute("y2", String(my));
+                  l2.setAttribute("stroke", strokeColor);
+                  l2.setAttribute("stroke-width", strokeWidth);
+                  l2.setAttribute("stroke-linecap", "round");
+                  g.appendChild(l2);
+                  const [ix, iy] = this.getCellCenter(innerVertex);
+                  const r = innerMidRadius * scale;
+                  let sweep = 1;
+                  let diff = innerMidAngle - outerMidAngle;
+                  if (diff < -M_PI3) diff += 2 * M_PI3;
+                  if (diff > M_PI3) diff -= 2 * M_PI3;
+                  if (diff < 0) sweep = 0;
+                  const arc = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                  arc.setAttribute("d", `M ${mx} ${my} A ${r} ${r} 0 0 ${sweep} ${ix * scale} ${iy * scale}`);
+                  arc.setAttribute("stroke", strokeColor);
+                  arc.setAttribute("stroke-width", strokeWidth);
+                  arc.setAttribute("stroke-linecap", "round");
+                  arc.setAttribute("fill", "none");
+                  g.appendChild(arc);
+                } else {
+                  const [ix, iy] = this.getCellCenter(innerVertex);
+                  const l2 = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                  l2.setAttribute("x1", String(bx));
+                  l2.setAttribute("y1", String(by));
+                  l2.setAttribute("x2", String(ix * scale));
+                  l2.setAttribute("y2", String(iy * scale));
+                  l2.setAttribute("stroke", strokeColor);
+                  l2.setAttribute("stroke-width", strokeWidth);
+                  l2.setAttribute("stroke-linecap", "round");
+                  g.appendChild(l2);
+                }
+              }
+            }
+          } catch (_) {
+          }
+        }
+      }
     }
     getCoordinateBounds() {
       return [-this.size, -this.size, this.size, this.size];
