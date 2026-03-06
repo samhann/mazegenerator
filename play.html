@@ -104,6 +104,7 @@ canvas { border-radius: 4px; }
     <h1>Maze Runner</h1>
   </div>
   <div class="header-stats">
+    <div class="stat"><span class="stat-label">Lives</span><span class="stat-value" id="lives" style="color:#e94560">&#9829;&#9829;&#9829;</span></div>
     <div class="stat"><span class="stat-label">Time</span><span class="stat-value" id="timer">0:00</span></div>
     <div class="stat"><span class="stat-label">Moves</span><span class="stat-value" id="moves">0</span></div>
   </div>
@@ -253,6 +254,7 @@ function playSound(freq, dur, type) {
   o.start(); o.stop(audioCtx.currentTime + dur);
 }
 function playMoveSound() { playSound(440, 0.05, 'sine'); }
+function playPowerUpSound() { [660,880,1100].forEach((f,i) => setTimeout(() => playSound(f,0.12,'sine'), i*80)); }
 function playWinSound() { [523,659,784,1047].forEach((f,i) => setTimeout(() => playSound(f,0.2,'square'), i*120)); }
 function playDeathSound() { [400,300,200,100].forEach((f,i) => setTimeout(() => playSound(f,0.25,'sawtooth'), i*100)); }
 
@@ -264,11 +266,18 @@ let moveCount = 0;
 let timerStart = 0, timerInterval = null;
 let gameOver = false, gameWon = false;
 let gameStarted = false;
-let enemyTickCounter = 0, enemySpeed = 4;
-const ENEMY_RANDOM_CHANCE = 0.4;
+let enemyTickCounter = 0, enemySpeed = 5;
+const ENEMY_RANDOM_CHANCE = 0.65; // 65% random moves = much dumber
 let hintTimeout = null, showingHint = false;
 let gameTickInterval = null;
 let animFrame = 0;
+let lives = 3;
+let powerPellets = []; // vertex indices where pellets are
+let enemyFrozenUntil = 0; // timestamp when freeze ends
+const FREEZE_DURATION = 4000; // 4 seconds freeze
+let respawning = false; // brief invincibility after respawn
+let respawnUntil = 0;
+const RESPAWN_INVINCIBLE = 1500; // 1.5s invincible after respawn
 
 // Graph-based data
 let passableNeighbors = []; // passableNeighbors[v] = [neighbor vertices]
@@ -443,6 +452,19 @@ function draw() {
     ctx.beginPath(); ctx.arc(a.cx, a.cy, a.r, a.t1, a.t2); ctx.stroke();
   }
 
+  // Power pellets (glowing dots)
+  const pelletR = Math.max(3, txScale * 0.15);
+  const frozen = Date.now() < enemyFrozenUntil;
+  for (const pv of powerPellets) {
+    const px = cellPos[pv].x, py = cellPos[pv].y;
+    ctx.fillStyle = '#ffff00';
+    ctx.shadowColor = '#ffff00';
+    ctx.shadowBlur = pelletR * 2;
+    ctx.globalAlpha = 0.6 + 0.3 * Math.sin(Date.now() / 250 + pv);
+    ctx.beginPath(); ctx.arc(px, py, pelletR, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+  }
+
   // Goal (pulsing)
   const gx = cellPos[goalVertex].x, gy = cellPos[goalVertex].y;
   const gr = Math.max(4, txScale * 0.3);
@@ -453,14 +475,16 @@ function draw() {
   ctx.fillStyle = theme.solutionColor;
   ctx.beginPath(); ctx.arc(gx, gy, gr * 0.5, 0, Math.PI * 2); ctx.fill();
 
-  // Enemies (ghosts)
+  // Enemies (ghosts) - turn blue when frozen
   const ghostR = Math.max(4, txScale * 0.3);
   for (let i = 0; i < enemies.length; i++) {
     const ex = enemyAnims[i].x, ey = enemyAnims[i].y;
     const sz = ghostR;
-    ctx.fillStyle = enemies[i].color;
-    ctx.shadowColor = enemies[i].color;
+    const eColor = frozen ? '#4444ff' : enemies[i].color;
+    ctx.fillStyle = eColor;
+    ctx.shadowColor = eColor;
     ctx.shadowBlur = sz;
+    if (frozen) ctx.globalAlpha = 0.5 + 0.2 * Math.sin(Date.now() / 200);
     ctx.beginPath();
     ctx.arc(ex, ey - sz * 0.2, sz, Math.PI, 0);
     ctx.lineTo(ex + sz, ey + sz * 0.5);
@@ -470,32 +494,56 @@ function draw() {
       ctx.quadraticCurveTo(wx1, ey + sz * 0.9, wx2, ey + sz * 0.5);
     }
     ctx.closePath(); ctx.fill();
-    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 1; ctx.shadowBlur = 0;
     // Eyes
-    ctx.fillStyle = '#fff';
+    ctx.fillStyle = frozen ? '#aaf' : '#fff';
     ctx.beginPath(); ctx.arc(ex - sz * 0.3, ey - sz * 0.25, sz * 0.2, 0, Math.PI * 2); ctx.fill();
     ctx.beginPath(); ctx.arc(ex + sz * 0.3, ey - sz * 0.25, sz * 0.2, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#000';
+    ctx.fillStyle = frozen ? '#44f' : '#000';
     ctx.beginPath(); ctx.arc(ex - sz * 0.25, ey - sz * 0.2, sz * 0.1, 0, Math.PI * 2); ctx.fill();
     ctx.beginPath(); ctx.arc(ex + sz * 0.35, ey - sz * 0.2, sz * 0.1, 0, Math.PI * 2); ctx.fill();
   }
 
-  // Player (pac-man)
+  // Player (pac-man) - flicker during invincibility
+  const invincible = Date.now() < respawnUntil;
   const pColor = theme.breakColor || '#00ffff';
   const pr = Math.max(4, txScale * 0.25);
-  ctx.fillStyle = pColor;
-  ctx.shadowColor = pColor;
-  ctx.shadowBlur = pr * 1.5;
-  ctx.beginPath(); ctx.arc(playerAnimX, playerAnimY, pr, 0, Math.PI * 2); ctx.fill();
-  ctx.shadowBlur = 0;
-  // Mouth
-  if (moveAngle !== null) {
-    ctx.fillStyle = theme.backgroundColor;
-    const mouth = 0.3 + 0.1 * Math.sin(animFrame * 0.3);
-    ctx.beginPath();
-    ctx.moveTo(playerAnimX, playerAnimY);
-    ctx.arc(playerAnimX, playerAnimY, pr * 1.05, lastMoveAngle - mouth, lastMoveAngle + mouth);
-    ctx.closePath(); ctx.fill();
+  if (!invincible || Math.floor(Date.now() / 100) % 2 === 0) {
+    ctx.fillStyle = pColor;
+    ctx.shadowColor = pColor;
+    ctx.shadowBlur = pr * 1.5;
+    ctx.beginPath(); ctx.arc(playerAnimX, playerAnimY, pr, 0, Math.PI * 2); ctx.fill();
+    ctx.shadowBlur = 0;
+    // Mouth
+    if (moveAngle !== null) {
+      ctx.fillStyle = theme.backgroundColor;
+      const mouth = 0.3 + 0.1 * Math.sin(animFrame * 0.3);
+      ctx.beginPath();
+      ctx.moveTo(playerAnimX, playerAnimY);
+      ctx.arc(playerAnimX, playerAnimY, pr * 1.05, lastMoveAngle - mouth, lastMoveAngle + mouth);
+      ctx.closePath(); ctx.fill();
+    }
+  }
+
+  // Compass arrow toward goal
+  if (gameStarted && !gameOver && !gameWon) {
+    const cdx = gx - playerAnimX, cdy = gy - playerAnimY;
+    const cDist = Math.sqrt(cdx * cdx + cdy * cdy);
+    if (cDist > pr * 3) { // only show if goal is not very close
+      const ca = Math.atan2(cdy, cdx);
+      const arrowDist = pr * 2.2;
+      const ax = playerAnimX + Math.cos(ca) * arrowDist;
+      const ay = playerAnimY + Math.sin(ca) * arrowDist;
+      const arrowSz = pr * 0.5;
+      ctx.fillStyle = theme.solutionColor;
+      ctx.globalAlpha = 0.4 + 0.15 * Math.sin(Date.now() / 500);
+      ctx.beginPath();
+      ctx.moveTo(ax + Math.cos(ca) * arrowSz, ay + Math.sin(ca) * arrowSz);
+      ctx.lineTo(ax + Math.cos(ca + 2.4) * arrowSz, ay + Math.sin(ca + 2.4) * arrowSz);
+      ctx.lineTo(ax + Math.cos(ca - 2.4) * arrowSz, ay + Math.sin(ca - 2.4) * arrowSz);
+      ctx.closePath(); ctx.fill();
+      ctx.globalAlpha = 1;
+    }
   }
 
   // Ready screen
@@ -568,26 +616,41 @@ function gameTick() {
     moveCount++;
     document.getElementById('moves').textContent = moveCount;
     playMoveSound();
-  }
 
-  // Enemy AI
-  enemyTickCounter++;
-  if (enemyTickCounter >= enemySpeed) {
-    enemyTickCounter = 0;
-    for (const enemy of enemies) {
-      let next;
-      if (Math.random() < ENEMY_RANDOM_CHANCE) {
-        next = randomPassableNeighbor(enemy.vertex);
-      } else {
-        next = bfsNextStep(enemy.vertex, playerVertex);
-      }
-      if (next !== null && next !== undefined) enemy.vertex = next;
+    // Check power pellet collection
+    const pelletIdx = powerPellets.indexOf(playerVertex);
+    if (pelletIdx !== -1) {
+      powerPellets.splice(pelletIdx, 1);
+      enemyFrozenUntil = Date.now() + FREEZE_DURATION;
+      playSound(880, 0.15, 'sine');
+      playSound(1100, 0.15, 'sine');
     }
   }
 
-  // Collision
-  for (const enemy of enemies) {
-    if (enemy.vertex === playerVertex) { loseGame(); return; }
+  // Enemy AI - skip if frozen
+  const frozen = Date.now() < enemyFrozenUntil;
+  if (!frozen) {
+    enemyTickCounter++;
+    if (enemyTickCounter >= enemySpeed) {
+      enemyTickCounter = 0;
+      for (const enemy of enemies) {
+        let next;
+        if (Math.random() < ENEMY_RANDOM_CHANCE) {
+          next = randomPassableNeighbor(enemy.vertex);
+        } else {
+          next = bfsNextStep(enemy.vertex, playerVertex);
+        }
+        if (next !== null && next !== undefined) enemy.vertex = next;
+      }
+    }
+  }
+
+  // Collision (skip during invincibility)
+  const invincible = Date.now() < respawnUntil;
+  if (!invincible && !frozen) {
+    for (const enemy of enemies) {
+      if (enemy.vertex === playerVertex) { playerCaught(); return; }
+    }
   }
   // Win
   if (playerVertex === goalVertex) winGame();
@@ -616,20 +679,37 @@ function winGame() {
   setTimeout(() => document.getElementById('winOverlay').classList.add('show'), 400);
 }
 
-function loseGame() {
-  gameOver = true;
-  clearInterval(gameTickInterval);
-  clearInterval(timerInterval);
-  stopMusic();
+function playerCaught() {
+  lives--;
+  updateLivesDisplay();
   playDeathSound();
-  document.getElementById('endEmoji').textContent = '\u{1F47B}';
-  document.getElementById('endTitle').textContent = 'Caught!';
-  document.getElementById('winTime').textContent = document.getElementById('timer').textContent;
-  document.getElementById('winMoves').textContent = moveCount;
-  setTimeout(() => {
-    draw();
-    document.getElementById('winOverlay').classList.add('show');
-  }, 500);
+  if (lives <= 0) {
+    // Game over
+    gameOver = true;
+    clearInterval(gameTickInterval);
+    clearInterval(timerInterval);
+    stopMusic();
+    document.getElementById('endEmoji').textContent = '\u{1F47B}';
+    document.getElementById('endTitle').textContent = 'Game Over!';
+    document.getElementById('winTime').textContent = document.getElementById('timer').textContent;
+    document.getElementById('winMoves').textContent = moveCount;
+    setTimeout(() => {
+      draw();
+      document.getElementById('winOverlay').classList.add('show');
+    }, 500);
+  } else {
+    // Respawn player at start, keep enemies where they are
+    playerVertex = maze.startvertex;
+    inputAngle = null; moveAngle = null;
+    playerAnimX = cellPos[playerVertex].x;
+    playerAnimY = cellPos[playerVertex].y;
+    respawnUntil = Date.now() + RESPAWN_INVINCIBLE;
+  }
+}
+
+function updateLivesDisplay() {
+  const el = document.getElementById('lives');
+  el.textContent = '\u2764'.repeat(lives) + '\u2661'.repeat(Math.max(0, 3 - lives));
 }
 
 function updateTimer() {
@@ -735,12 +815,29 @@ function newGame() {
   moveCount = 0; gameOver = false; gameWon = false; gameStarted = false;
   showingHint = false; enemyTickCounter = 0;
   inputAngle = null; moveAngle = null; lastMoveAngle = 0;
+  lives = 3; enemyFrozenUntil = 0; respawnUntil = 0;
+  updateLivesDisplay();
   document.getElementById('moves').textContent = '0';
   document.getElementById('timer').textContent = '0:00';
 
-  // Enemy speed based on maze size
+  // Enemy speed based on maze size (higher = slower enemies)
   const n = maze.vertices;
-  enemySpeed = n <= 50 ? 5 : n <= 100 ? 4 : n <= 200 ? 3 : 2;
+  enemySpeed = n <= 50 ? 6 : n <= 100 ? 5 : n <= 200 ? 4 : 3;
+
+  // Scatter power pellets along the maze (not at start/goal)
+  powerPellets = [];
+  const pelletCount = Math.max(2, Math.floor(n / 25));
+  const pelletCandidates = [];
+  for (let v = 0; v < n; v++) {
+    if (v !== playerVertex && v !== goalVertex && passableNeighbors[v].length >= 2) {
+      pelletCandidates.push(v);
+    }
+  }
+  // Spread them out evenly
+  for (let i = 0; i < pelletCount && pelletCandidates.length > 0; i++) {
+    const idx = Math.floor((i + 0.5) * pelletCandidates.length / pelletCount);
+    powerPellets.push(pelletCandidates[idx]);
+  }
 
   // Spawn enemies
   const enemyCount = parseInt(document.getElementById('enemyCount').value);
