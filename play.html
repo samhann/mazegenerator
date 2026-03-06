@@ -51,23 +51,28 @@ canvas { border-radius: 4px; }
 .btn-back { background: transparent; color: #fff; opacity: 0.7; font-size: 0.8em; text-decoration: none; }
 .btn-back:hover { opacity: 1; }
 
-/* D-pad */
-.dpad {
-  position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
-  width: 160px; height: 160px; display: none;
-}
-.dpad-btn {
-  position: absolute; width: 52px; height: 52px;
-  background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
-  border-radius: 10px; display: flex; align-items: center; justify-content: center;
-  font-size: 1.4em; color: rgba(255,255,255,0.7); cursor: pointer;
+/* Joystick */
+.joystick-zone {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  width: 140px; height: 140px; display: none;
   -webkit-tap-highlight-color: transparent;
 }
-.dpad-btn:active { background: rgba(255,255,255,0.25); }
-.dpad-up { top: 0; left: 50%; transform: translateX(-50%); }
-.dpad-down { bottom: 0; left: 50%; transform: translateX(-50%); }
-.dpad-left { top: 50%; left: 0; transform: translateY(-50%); }
-.dpad-right { top: 50%; right: 0; transform: translateY(-50%); }
+.joystick-base {
+  position: absolute; inset: 0;
+  background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.15);
+  border-radius: 50%;
+}
+.joystick-knob {
+  position: absolute; width: 56px; height: 56px;
+  top: 50%; left: 50%; transform: translate(-50%, -50%);
+  background: rgba(255,255,255,0.25); border: 2px solid rgba(255,255,255,0.4);
+  border-radius: 50%; pointer-events: none;
+  transition: transform 0.05s;
+}
+.joystick-label {
+  position: absolute; bottom: -18px; left: 50%; transform: translateX(-50%);
+  font-size: 0.6em; opacity: 0.4; white-space: nowrap;
+}
 
 /* Overlays */
 .overlay {
@@ -87,7 +92,7 @@ canvas { border-radius: 4px; }
 .win-stats span { font-weight: 700; color: #e94560; }
 
 @media (hover: none) and (pointer: coarse) {
-  .dpad { display: block; }
+  .joystick-zone { display: block; }
   .game-area { padding-bottom: 180px; }
 }
 </style>
@@ -143,11 +148,10 @@ canvas { border-radius: 4px; }
   <canvas id="canvas"></canvas>
 </div>
 
-<div class="dpad" id="dpad">
-  <div class="dpad-btn dpad-up" data-dir="up">&uarr;</div>
-  <div class="dpad-btn dpad-down" data-dir="down">&darr;</div>
-  <div class="dpad-btn dpad-left" data-dir="left">&larr;</div>
-  <div class="dpad-btn dpad-right" data-dir="right">&rarr;</div>
+<div class="joystick-zone" id="joystickZone">
+  <div class="joystick-base"></div>
+  <div class="joystick-knob" id="joystickKnob"></div>
+  <div class="joystick-label">drag to move</div>
 </div>
 
 <div class="overlay" id="winOverlay">
@@ -282,7 +286,8 @@ let timerStart = 0, timerInterval = null;
 let gameOver = false, gameWon = false;
 let gameStarted = false; // enemies wait until first input
 let enemyTickCounter = 0; // enemies move every N ticks
-const ENEMY_SPEED = 2; // enemies move once per this many ticks (higher = slower)
+let enemySpeed = 4; // enemies move once per this many ticks (higher = slower)
+const ENEMY_RANDOM_CHANCE = 0.4; // 40% chance enemy makes a random move instead of optimal
 let hintTimeout = null, showingHint = false;
 let gameTickInterval = null;
 let passable = [];
@@ -354,6 +359,17 @@ function bfsNextStep(sr, sc, tr, tc) {
 
 function canMove(r, c, dir) {
   return passable[r] && passable[r][c] && passable[r][c][dir];
+}
+
+// Get a random passable neighbor for an enemy (dumb move)
+function randomNeighbor(r, c) {
+  const dirs = ['up', 'down', 'left', 'right'];
+  const deltas = { up: [-1,0], down: [1,0], left: [0,-1], right: [0,1] };
+  const options = dirs.filter(d => canMove(r, c, d));
+  if (options.length === 0) return null;
+  const pick = options[Math.floor(Math.random() * options.length)];
+  const [dr, dc] = deltas[pick];
+  return { row: r + dr, col: c + dc };
 }
 
 function calcCellSize() {
@@ -521,12 +537,19 @@ function gameTick() {
     playMoveSound();
   }
 
-  // Move enemies toward player (slower — only every ENEMY_SPEED ticks)
+  // Move enemies toward player (much slower, sometimes random)
   enemyTickCounter++;
-  if (enemyTickCounter >= ENEMY_SPEED) {
+  if (enemyTickCounter >= enemySpeed) {
     enemyTickCounter = 0;
     for (const enemy of enemies) {
-      const next = bfsNextStep(enemy.row, enemy.col, playerRow, playerCol);
+      let next;
+      if (Math.random() < ENEMY_RANDOM_CHANCE) {
+        // Dumb random move
+        next = randomNeighbor(enemy.row, enemy.col);
+      } else {
+        // Smart BFS move
+        next = bfsNextStep(enemy.row, enemy.col, playerRow, playerCol);
+      }
       if (next) {
         enemy.row = next.row;
         enemy.col = next.col;
@@ -638,6 +661,8 @@ function newGame() {
   goalRow = height - 1; goalCol = width - 1;
   moveCount = 0; gameOver = false; gameWon = false; gameStarted = false; showingHint = false;
   enemyTickCounter = 0;
+  // Enemies slower on small mazes, faster on large ones
+  enemySpeed = size <= 5 ? 5 : size <= 10 ? 4 : 3;
   document.getElementById('moves').textContent = '0';
 
   const seed = (Math.random() * 0xffffffff) >>> 0;
@@ -680,15 +705,49 @@ document.addEventListener('keydown', e => {
   if (e.key === ' ') { e.preventDefault(); toggleMusic(); }
 });
 
-// D-pad
-document.querySelectorAll('.dpad-btn').forEach(btn => {
-  const dir = btn.dataset.dir;
-  const handler = e => { e.preventDefault(); initAudio(); setDirection(dir); };
-  btn.addEventListener('touchstart', handler);
-  btn.addEventListener('mousedown', handler);
+// Joystick
+const joystickZone = document.getElementById('joystickZone');
+const joystickKnob = document.getElementById('joystickKnob');
+let joystickActive = false, joystickCenterX = 0, joystickCenterY = 0;
+const JOYSTICK_RADIUS = 50;
+const JOYSTICK_DEADZONE = 15;
+
+function updateJoystick(clientX, clientY) {
+  const rect = joystickZone.getBoundingClientRect();
+  joystickCenterX = rect.left + rect.width / 2;
+  joystickCenterY = rect.top + rect.height / 2;
+  let dx = clientX - joystickCenterX;
+  let dy = clientY - joystickCenterY;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  // Clamp to radius
+  if (dist > JOYSTICK_RADIUS) { dx = dx / dist * JOYSTICK_RADIUS; dy = dy / dist * JOYSTICK_RADIUS; }
+  joystickKnob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+
+  if (dist > JOYSTICK_DEADZONE) {
+    if (Math.abs(dx) > Math.abs(dy)) {
+      setDirection(dx > 0 ? 'right' : 'left');
+    } else {
+      setDirection(dy > 0 ? 'down' : 'up');
+    }
+  }
+}
+
+joystickZone.addEventListener('touchstart', e => {
+  e.preventDefault(); initAudio(); joystickActive = true;
+  updateJoystick(e.touches[0].clientX, e.touches[0].clientY);
+});
+document.addEventListener('touchmove', e => {
+  if (!joystickActive) return;
+  e.preventDefault();
+  updateJoystick(e.touches[0].clientX, e.touches[0].clientY);
+}, { passive: false });
+document.addEventListener('touchend', e => {
+  if (!joystickActive) return;
+  joystickActive = false;
+  joystickKnob.style.transform = 'translate(-50%, -50%)';
 });
 
-// Swipe on canvas
+// Swipe anywhere on canvas too (for quick flicks)
 let touchStartX = 0, touchStartY = 0;
 canvas.addEventListener('touchstart', e => {
   initAudio();
@@ -698,7 +757,7 @@ canvas.addEventListener('touchstart', e => {
 canvas.addEventListener('touchend', e => {
   const t = e.changedTouches[0];
   const dx = t.clientX - touchStartX, dy = t.clientY - touchStartY;
-  if (Math.abs(dx) < 20 && Math.abs(dy) < 20) return;
+  if (Math.abs(dx) < 25 && Math.abs(dy) < 25) return;
   if (Math.abs(dx) > Math.abs(dy)) {
     setDirection(dx > 0 ? 'right' : 'left');
   } else {
