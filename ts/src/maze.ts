@@ -17,6 +17,7 @@ export abstract class Maze {
   protected solution: Graph;
   protected startvertex: number;
   protected endvertex: number;
+  protected showSolution: boolean = false;
 
   constructor(vertices: number = 0, startvertex: number = 0, endvertex: number = 1) {
     this.vertices = vertices;
@@ -24,6 +25,15 @@ export abstract class Maze {
     this.endvertex = endvertex;
     this.adjacencylist = [];
     this.solution = [];
+  }
+
+  setShowSolution(show: boolean): void {
+    this.showSolution = show;
+  }
+
+  /** Returns the (x, y) center of a cell in the maze's coordinate system. */
+  getCellCenter(_vertex: number): [number, number] {
+    throw new Error("getCellCenter not implemented for this maze type");
   }
 
   initializeGraph(): void {
@@ -90,6 +100,18 @@ export abstract class Maze {
         }
       }
     }
+
+    if (this.showSolution) {
+      for (let u = 0; u < this.vertices; u++) {
+        for (const edge of this.solution[u]) {
+          const v = edge[0];
+          const [x1, y1] = this.getCellCenter(u);
+          const [x2, y2] = this.getCellCenter(v);
+          svg += `<line x1="${fmtStream(x1 * 30)}" y1="${fmtStream(y1 * 30)}" x2="${fmtStream(x2 * 30)}" y2="${fmtStream(y2 * 30)}" stroke="red" stroke-width="2" stroke-linecap="round"/>\n`;
+        }
+      }
+    }
+
     svg += `</g>\n`;
     svg += `</svg>\n`;
 

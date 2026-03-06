@@ -59,6 +59,12 @@ export class RectangularMaze extends Maze {
     }
   }
 
+  getCellCenter(vertex: number): [number, number] {
+    const row = Math.floor(vertex / this.width);
+    const col = vertex % this.width;
+    return [col + 0.5, row + 0.5];
+  }
+
   getCoordinateBounds(): [number, number, number, number] {
     return [0, 0, this.width, this.height];
   }

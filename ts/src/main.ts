@@ -41,6 +41,7 @@ function usage(): void {
   console.log("          0: svg output (default)");
   console.log("  -o      Prefix for .svg outputs (default: maze)");
   console.log("  -r      Random seed for deterministic maze generation");
+  console.log("  -p      Show solution path");
 }
 
 function main(): void {
@@ -50,6 +51,7 @@ function main(): void {
   };
   let outputprefix = "maze";
   let seed: number | undefined;
+  let showSolution = false;
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--help") {
@@ -62,6 +64,10 @@ function main(): void {
     }
     if (args[i] === "-r") {
       seed = parseInt(args[++i], 10);
+      continue;
+    }
+    if (args[i] === "-p") {
+      showSolution = true;
       continue;
     }
     if (args[i] in options) {
@@ -133,6 +139,10 @@ function main(): void {
     default:
       console.error(`Unknown algorithm type ${options["-a"]}`);
       process.exit(1);
+  }
+
+  if (showSolution) {
+    maze.setShowSolution(true);
   }
 
   console.log("Initialising graph...");
