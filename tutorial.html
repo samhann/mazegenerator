@@ -5,16 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 <title>How Mazes Work &mdash; An Interactive Tutorial</title>
 <style>
-/* ===== Reset & Base ===== */
 *{box-sizing:border-box;margin:0;padding:0}
 body{
   font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
   background:#0f0f23;color:#c8c8d8;
-  line-height:1.75;font-size:17px;
+  line-height:1.7;font-size:17px;
 }
 ::selection{background:#e94560;color:#fff}
-
-/* ===== Layout ===== */
 header{
   background:#1a1a2e;padding:24px 20px 20px;text-align:center;
   border-bottom:2px solid #e94560;
@@ -28,118 +25,79 @@ header p{font-size:0.85em;opacity:0.6;margin-top:4px}
   transition:all 0.2s;
 }
 .nav-links a:hover{background:#e94560;color:#fff}
-
 main{max-width:760px;margin:0 auto;padding:0 20px 80px}
-
-/* ===== Sections ===== */
-.step{
-  margin-top:48px;padding-top:32px;
-  border-top:1px solid rgba(255,255,255,0.06);
-}
-.step:first-child{border-top:none;margin-top:32px}
+.step{margin-top:44px;padding-top:28px;border-top:1px solid rgba(255,255,255,0.06)}
+.step:first-child{border-top:none;margin-top:28px}
 .step-number{
-  display:inline-block;width:30px;height:30px;line-height:30px;
+  display:inline-block;width:28px;height:28px;line-height:28px;
   text-align:center;border-radius:50%;background:#e94560;color:#fff;
-  font-size:0.75em;font-weight:700;margin-bottom:8px;
+  font-size:0.72em;font-weight:700;margin-bottom:6px;
 }
-.step h2{font-size:1.3em;color:#fff;margin-bottom:12px;font-weight:700}
-.step h3{font-size:1.05em;color:#e0e0f0;margin:20px 0 8px;font-weight:600}
-
-p{margin-bottom:14px}
+.step h2{font-size:1.25em;color:#fff;margin-bottom:10px;font-weight:700}
+.step h3{font-size:1em;color:#e0e0f0;margin:16px 0 6px;font-weight:600}
+p{margin-bottom:12px}
 strong{color:#fff}
 em{color:#e94560;font-style:normal;font-weight:600}
-
-/* ===== Diagrams & Demos ===== */
+ol,ul{padding-left:22px;margin-bottom:12px}
+li{margin-bottom:4px}
 .demo-box{
   background:#141428;border:1px solid #252545;border-radius:10px;
-  padding:16px;margin:16px 0 20px;overflow-x:auto;
-  display:flex;flex-direction:column;align-items:center;gap:12px;
+  padding:16px;margin:14px 0 18px;overflow-x:auto;
+  display:flex;flex-direction:column;align-items:center;gap:10px;
 }
 .demo-box svg{max-width:100%;height:auto;border-radius:6px}
 .demo-controls{
   display:flex;gap:8px;flex-wrap:wrap;justify-content:center;align-items:center;
 }
 .demo-controls button{
-  padding:6px 14px;border:1px solid #e94560;border-radius:6px;
-  background:transparent;color:#e94560;font-size:0.8em;font-weight:600;
+  padding:5px 12px;border:1px solid #e94560;border-radius:6px;
+  background:transparent;color:#e94560;font-size:0.78em;font-weight:600;
   cursor:pointer;transition:all 0.15s;
 }
 .demo-controls button:hover{background:#e94560;color:#fff}
 .demo-controls button.active{background:#e94560;color:#fff}
 .demo-controls select{
-  padding:5px 8px;border:1px solid #333;border-radius:6px;
-  background:#16213e;color:#fff;font-size:0.8em;
+  padding:4px 8px;border:1px solid #333;border-radius:6px;
+  background:#16213e;color:#fff;font-size:0.78em;
 }
-.demo-label{font-size:0.75em;opacity:0.5;text-align:center}
-
-/* ===== Code blocks ===== */
+.demo-label{font-size:0.72em;opacity:0.45;text-align:center}
+.demo-status{font-size:0.82em;color:#82aaff;font-weight:600;font-family:'SF Mono',Menlo,monospace}
 pre{
   background:#0a0a1a;border:1px solid #252545;border-radius:8px;
-  padding:14px 16px;overflow-x:auto;margin:12px 0 16px;
-  font-family:'SF Mono',Menlo,Consolas,monospace;font-size:0.82em;
-  line-height:1.6;color:#a0a0c0;
+  padding:12px 14px;overflow-x:auto;margin:10px 0 14px;
+  font-family:'SF Mono',Menlo,Consolas,monospace;font-size:0.8em;
+  line-height:1.55;color:#a0a0c0;
 }
 pre .kw{color:#c792ea} pre .fn{color:#82aaff} pre .cm{color:#546e7a}
 pre .st{color:#c3e88d} pre .num{color:#f78c6c} pre .op{color:#89ddff}
-
-/* ===== Inline code ===== */
 code{
   background:#1a1a2e;padding:2px 6px;border-radius:4px;
   font-family:'SF Mono',Menlo,Consolas,monospace;font-size:0.88em;color:#e0e0f0;
 }
-
-/* ===== Callouts ===== */
 .callout{
   background:rgba(233,69,96,0.08);border-left:3px solid #e94560;
-  padding:12px 16px;border-radius:0 8px 8px 0;margin:16px 0;
-  font-size:0.92em;
+  padding:10px 14px;border-radius:0 8px 8px 0;margin:14px 0;font-size:0.9em;
 }
-.callout-title{font-weight:700;color:#e94560;font-size:0.8em;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px}
-
-.callout-blue{
-  background:rgba(130,170,255,0.08);border-left-color:#82aaff;
-}
+.callout-title{font-weight:700;color:#e94560;font-size:0.78em;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px}
+.callout-blue{background:rgba(130,170,255,0.08);border-left-color:#82aaff}
 .callout-blue .callout-title{color:#82aaff}
-
-/* ===== ASCII art ===== */
-.ascii{
-  font-family:'SF Mono',Menlo,Consolas,monospace;font-size:0.78em;
-  line-height:1.4;color:#a0c0a0;white-space:pre;overflow-x:auto;
-  background:#0a0a1a;padding:14px;border-radius:8px;margin:12px 0 16px;
-  border:1px solid #252545;
-}
-
-/* ===== Table of Contents ===== */
 .toc{
   background:#141428;border:1px solid #252545;border-radius:10px;
-  padding:20px 24px;margin:28px 0;
+  padding:16px 20px;margin:24px 0;
 }
-.toc h3{font-size:0.85em;text-transform:uppercase;letter-spacing:1px;opacity:0.5;margin-bottom:12px;color:#fff}
-.toc ol{padding-left:20px}
-.toc li{margin-bottom:6px}
-.toc a{color:#82aaff;text-decoration:none;font-size:0.92em}
+.toc h3{font-size:0.8em;text-transform:uppercase;letter-spacing:1px;opacity:0.5;margin-bottom:10px;color:#fff}
+.toc ol{padding-left:20px;margin-bottom:0}
+.toc li{margin-bottom:5px}
+.toc a{color:#82aaff;text-decoration:none;font-size:0.9em}
 .toc a:hover{color:#e94560}
-
-/* ===== Canvas for graph demos ===== */
 canvas.graph-canvas{
-  background:#0a0a1a;border-radius:8px;border:1px solid #252545;
-  max-width:100%;
+  background:#0a0a1a;border-radius:8px;border:1px solid #252545;max-width:100%;
 }
-
-/* ===== Interactive graph vertex labels ===== */
-.graph-legend{
-  display:flex;gap:16px;flex-wrap:wrap;justify-content:center;
-  font-size:0.78em;opacity:0.7;
-}
-.graph-legend span{display:flex;align-items:center;gap:4px}
-.legend-dot{width:10px;height:10px;border-radius:50%;display:inline-block}
-
-/* ===== Responsive ===== */
 @media(max-width:600px){
   body{font-size:15.5px}
   header h1{font-size:1.3em}
-  .step h2{font-size:1.15em}
-  pre{font-size:0.75em;padding:10px 12px}
+  .step h2{font-size:1.1em}
+  pre{font-size:0.73em;padding:10px 12px}
   main{padding:0 14px 60px}
 }
 </style>
@@ -147,7 +105,7 @@ canvas.graph-canvas{
 <body>
 <header>
   <h1>How Mazes Work</h1>
-  <p>An interactive guide to the mathematics and code behind maze generation</p>
+  <p>An interactive guide to maze generation</p>
   <div class="nav-links">
     <a href="index.html">Generator</a>
     <a href="play.html">Play Game</a>
@@ -155,44 +113,32 @@ canvas.graph-canvas{
 </header>
 <main>
 
-<!-- ===== TABLE OF CONTENTS ===== -->
 <div class="toc">
   <h3>Contents</h3>
   <ol>
-    <li><a href="#step1">The Big Idea: Mazes Are Graphs</a></li>
+    <li><a href="#step1">Mazes Are Graphs</a></li>
     <li><a href="#step2">Building the Grid Graph</a></li>
-    <li><a href="#step3">Spanning Trees: The Heart of Maze Generation</a></li>
-    <li><a href="#step4">Kruskal's Algorithm in Action</a></li>
-    <li><a href="#step5">From Edges to Walls</a></li>
-    <li><a href="#step6">Finding the Solution</a></li>
-    <li><a href="#step7">Beyond Rectangles: Hexagonal Mazes</a></li>
-    <li><a href="#step8">Rendering: Math to Pixels</a></li>
-    <li><a href="#step9">Try It Yourself</a></li>
+    <li><a href="#step3">Spanning Trees = Perfect Mazes</a></li>
+    <li><a href="#step4">Kruskal's Algorithm</a></li>
+    <li><a href="#step5">Finding the Solution</a></li>
+    <li><a href="#step6">Beyond Rectangles</a></li>
+    <li><a href="#step7">Try It Yourself</a></li>
   </ol>
 </div>
 
 <!-- ===== STEP 1 ===== -->
 <div class="step" id="step1">
 <span class="step-number">1</span>
-<h2>The Big Idea: Mazes Are Graphs</h2>
+<h2>Mazes Are Graphs</h2>
 
-<p>Here's the core insight that makes everything else possible: <em>a maze is just a graph</em>.</p>
-
-<p>In mathematics, a <strong>graph</strong> is a set of <strong>vertices</strong> (points) connected by <strong>edges</strong> (links). Think of a map of cities connected by roads. Every cell in a maze is a vertex, and every possible passage between two cells is an edge.</p>
+<p>A <strong>graph</strong> is a set of <strong>vertices</strong> (points) connected by <strong>edges</strong> (links). Every cell in a maze is a vertex, and every possible passage between cells is an edge.</p>
 
 <div class="demo-box">
-  <canvas class="graph-canvas" id="graphDemo1" width="360" height="200"></canvas>
-  <div class="demo-label">A simple graph: 6 vertices connected by edges</div>
+  <canvas class="graph-canvas" id="graphDemo1" width="360" height="180"></canvas>
+  <div class="demo-label">A graph: 6 vertices connected by 7 edges</div>
 </div>
 
-<p>When you look at a 4&times;4 grid of cells, you're really looking at 16 vertices. Each cell is connected to its neighbors by edges &mdash; up, down, left, right. That's our starting point: <em>a fully connected grid graph</em> where every cell can reach every neighbor.</p>
-
-<p>But wait &mdash; if every cell is connected to every neighbor, there are no walls at all! That's not much of a maze. The trick is figuring out which connections to <em>keep</em> and which to <em>block</em>. The blocked connections become the walls.</p>
-
-<div class="callout">
-  <div class="callout-title">Key insight</div>
-  A maze is a graph where some edges have been removed. The remaining edges are the passages; the removed edges are the walls.
-</div>
+<p>A 4&times;3 grid has 12 vertices, each connected to its neighbors. If every connection is open, there are no walls. A maze is what you get when you <em>selectively block</em> some of those connections. Blocked edges = walls. Open edges = passages.</p>
 </div>
 
 <!-- ===== STEP 2 ===== -->
@@ -200,348 +146,153 @@ canvas.graph-canvas{
 <span class="step-number">2</span>
 <h2>Building the Grid Graph</h2>
 
-<p>Let's build a rectangular maze step by step. We start with a grid of cells. Each cell gets a number (its <em>vertex index</em>):</p>
+<p>Each cell gets a number: <code>vertex = row * width + col</code>. We store the graph as an <strong>adjacency list</strong> &mdash; for each vertex, a list of its neighbors and the wall segment (<code>LineBorder</code>) between them:</p>
 
-<div class="ascii" id="gridAscii">+---+---+---+---+
-| 0 | 1 | 2 | 3 |
-+---+---+---+---+
-| 4 | 5 | 6 | 7 |
-+---+---+---+---+
-| 8 | 9 |10 |11 |
-+---+---+---+---+</div>
-
-<p>We use a simple formula to convert between (row, column) and vertex index:</p>
-
-<pre><span class="fn">vertexIndex</span>(row, column) <span class="op">=</span> row <span class="op">*</span> width <span class="op">+</span> column</pre>
-
-<p>So cell (1, 2) in a 4-wide grid is vertex <code>1 * 4 + 2 = 6</code>. Going backwards:</p>
-
-<pre>row <span class="op">=</span> Math.<span class="fn">floor</span>(vertex <span class="op">/</span> width)     <span class="cm">// 6 / 4 = 1</span>
-col <span class="op">=</span> vertex <span class="op">%</span> width                <span class="cm">// 6 % 4 = 2</span></pre>
-
-<h3>The adjacency list</h3>
-<p>We store the graph as an <strong>adjacency list</strong>: for each vertex, we keep a list of its neighbors and the <em>border</em> (wall segment) between them.</p>
-
-<pre><span class="cm">// Each edge is: [neighborVertex, borderObject]</span>
-<span class="cm">// For vertex 5 in our 4x3 grid:</span>
+<pre><span class="cm">// Vertex 5 in a 4-wide grid:</span>
 adjacencylist[<span class="num">5</span>] <span class="op">=</span> [
-  [<span class="num">1</span>, LineBorder(<span class="num">1</span>,<span class="num">1</span>, <span class="num">2</span>,<span class="num">1</span>)],  <span class="cm">// up: vertex 1</span>
-  [<span class="num">9</span>, LineBorder(<span class="num">1</span>,<span class="num">2</span>, <span class="num">2</span>,<span class="num">2</span>)],  <span class="cm">// down: vertex 9</span>
-  [<span class="num">4</span>, LineBorder(<span class="num">1</span>,<span class="num">1</span>, <span class="num">1</span>,<span class="num">2</span>)],  <span class="cm">// left: vertex 4</span>
-  [<span class="num">6</span>, LineBorder(<span class="num">2</span>,<span class="num">1</span>, <span class="num">2</span>,<span class="num">2</span>)]   <span class="cm">// right: vertex 6</span>
+  [<span class="num">1</span>, LineBorder(<span class="num">1</span>,<span class="num">1</span>, <span class="num">2</span>,<span class="num">1</span>)],  <span class="cm">// up</span>
+  [<span class="num">9</span>, LineBorder(<span class="num">1</span>,<span class="num">2</span>, <span class="num">2</span>,<span class="num">2</span>)],  <span class="cm">// down</span>
+  [<span class="num">4</span>, LineBorder(<span class="num">1</span>,<span class="num">1</span>, <span class="num">1</span>,<span class="num">2</span>)],  <span class="cm">// left</span>
+  [<span class="num">6</span>, LineBorder(<span class="num">2</span>,<span class="num">1</span>, <span class="num">2</span>,<span class="num">2</span>)]   <span class="cm">// right</span>
 ]</pre>
 
-<p>Notice how each <code>LineBorder</code> stores the start and end coordinates of that wall segment. Two neighboring cells share the <em>same</em> border object &mdash; this is important later when we need to remove walls.</p>
-
-<h3>Outer walls and entry/exit</h3>
-<p>The outer boundary of the maze uses a special vertex index of <code>-1</code> to represent "outside." We leave gaps at the top-left (entry) and bottom-right (exit):</p>
-
-<pre><span class="cm">// Left boundary &mdash; skip row 0 for the entry gap</span>
-<span class="kw">for</span> (i <span class="op">=</span> <span class="num">0</span>; i <span class="op">&lt;</span> height; i<span class="op">++</span>) {
-  <span class="kw">if</span> (i <span class="op">!==</span> <span class="num">0</span>)
-    adjacencylist[<span class="fn">vertexIndex</span>(i, <span class="num">0</span>)].<span class="fn">push</span>(
-      [<span class="num">-1</span>, <span class="kw">new</span> <span class="fn">LineBorder</span>(<span class="num">0</span>, i, <span class="num">0</span>, i<span class="op">+</span><span class="num">1</span>)]
-    )
-}</pre>
+<p>Two neighboring cells share the <em>same</em> border object. Outer walls use vertex <code>-1</code> to mean "outside," with gaps left for entry and exit.</p>
 
 <div class="demo-box">
-  <div id="gridGraphDemo"></div>
+  <canvas class="graph-canvas" id="gridDemo" width="400" height="280"></canvas>
   <div class="demo-controls">
-    <button onclick="gridGraphStep('full')">Full Grid</button>
-    <button onclick="gridGraphStep('borders')">Show Borders</button>
-    <button onclick="gridGraphStep('entry')">Show Entry/Exit</button>
+    <button onclick="gridDraw('cells')" class="active" id="gridBtn1">Cells &amp; Indices</button>
+    <button onclick="gridDraw('adj')" id="gridBtn2">Adjacency</button>
+    <button onclick="gridDraw('entry')" id="gridBtn3">Entry / Exit</button>
   </div>
-  <div class="demo-label">Click buttons to see how the grid graph is built</div>
 </div>
 </div>
 
 <!-- ===== STEP 3 ===== -->
 <div class="step" id="step3">
 <span class="step-number">3</span>
-<h2>Spanning Trees: The Heart of Maze Generation</h2>
+<h2>Spanning Trees = Perfect Mazes</h2>
 
-<p>Now comes the beautiful part. A perfect maze &mdash; one with exactly one path between any two cells &mdash; is mathematically equivalent to a <em>spanning tree</em> of the grid graph.</p>
+<p>A <strong>spanning tree</strong> is a subset of edges that connects every vertex with no cycles. It always has exactly <em>V &minus; 1</em> edges. Since there are no cycles, there's exactly <em>one path</em> between any two vertices &mdash; which is exactly what makes a perfect maze.</p>
 
-<p>A <strong>spanning tree</strong> is a subgraph that:</p>
-<ol style="padding-left:24px;margin-bottom:14px">
-  <li>Includes <em>every</em> vertex (it "spans" the entire graph)</li>
-  <li>Is <em>connected</em> (you can reach any vertex from any other)</li>
-  <li>Has <em>no cycles</em> (there's exactly one path between any two vertices)</li>
-</ol>
-
-<p>A spanning tree of a graph with <em>V</em> vertices always has exactly <em>V &minus; 1</em> edges. Think about it: you need at least <em>V &minus; 1</em> edges to connect <em>V</em> vertices, and any more would create a cycle.</p>
-
-<div class="callout-blue callout">
-  <div class="callout-title">Why spanning trees = perfect mazes</div>
-  <p style="margin-bottom:0">If there's exactly one path between any two cells, then there's exactly one way to get from the entrance to the exit. That's what makes it a <em>maze</em> &mdash; you have to find that one path. The "no cycles" property means there are no loops, so you can't walk in circles (but dead ends are everywhere).</p>
+<div class="callout">
+  <div class="callout-title">The key equivalence</div>
+  Random spanning tree of the grid graph = random perfect maze. Edges in the tree become passages; edges not in the tree become walls.
 </div>
 
-<p>So the maze generation problem reduces to: <em>find a random spanning tree of the grid graph</em>. The edges in the spanning tree become passages; everything else becomes walls.</p>
+<p>Click through to see the same 4&times;3 grid as a full graph, then its spanning tree, then the resulting maze:</p>
 
 <div class="demo-box">
-  <canvas class="graph-canvas" id="spanningTreeDemo" width="360" height="260"></canvas>
+  <canvas class="graph-canvas" id="spanningTreeDemo" width="400" height="280"></canvas>
   <div class="demo-controls">
-    <button onclick="stDemo('graph')">Full Graph</button>
-    <button onclick="stDemo('tree')">Spanning Tree</button>
-    <button onclick="stDemo('maze')">Resulting Maze</button>
+    <button onclick="stDraw('graph')" class="active" id="stBtn1">All Edges</button>
+    <button onclick="stDraw('tree')" id="stBtn2">Spanning Tree</button>
+    <button onclick="stDraw('maze')" id="stBtn3">Maze Walls</button>
   </div>
-  <div class="demo-label">Same graph, different views: edges in the tree become passages</div>
+  <div class="demo-status" id="stStatus">&nbsp;</div>
 </div>
 </div>
 
 <!-- ===== STEP 4 ===== -->
 <div class="step" id="step4">
 <span class="step-number">4</span>
-<h2>Kruskal's Algorithm in Action</h2>
+<h2>Kruskal's Algorithm</h2>
 
-<p>There are many ways to find a random spanning tree. Our primary method is <strong>Kruskal's algorithm</strong>, a classic from graph theory (1956). Here's how it works:</p>
+<p>To find a random spanning tree: shuffle all edges, then add each edge unless it would create a cycle. The cycle check uses <strong>Union-Find</strong>: each vertex starts in its own set; adding an edge merges two sets. If both vertices are already in the same set, skip it.</p>
 
-<ol style="padding-left:24px;margin-bottom:14px">
-  <li><strong>List all edges</strong> in the graph</li>
-  <li><strong>Shuffle them</strong> into random order</li>
-  <li><strong>For each edge:</strong> if connecting the two vertices wouldn't create a cycle, add it to the tree</li>
-</ol>
-
-<p>The "no cycle" check uses a clever data structure called <strong>Union-Find</strong> (or Disjoint Set). Initially, every vertex is in its own set. When we add an edge, we <em>union</em> the two sets. If both vertices are already in the same set, adding the edge would create a cycle, so we skip it.</p>
-
-<pre><span class="kw">class</span> <span class="fn">Kruskal</span> {
-  <span class="fn">spanningTree</span>(vertices, adjacencylist) {
-    <span class="cm">// 1. Collect all edges (avoid duplicates)</span>
-    edges <span class="op">=</span> []
-    <span class="kw">for</span> (i <span class="op">=</span> <span class="num">0</span>; i <span class="op">&lt;</span> vertices; i<span class="op">++</span>)
-      <span class="kw">for</span> (edge <span class="kw">of</span> adjacencylist[i])
-        <span class="kw">if</span> (edge[<span class="num">0</span>] <span class="op">&gt;</span> i) edges.<span class="fn">push</span>([i, edge[<span class="num">0</span>]])
-
-    <span class="cm">// 2. Shuffle randomly</span>
-    <span class="fn">shuffle</span>(edges)
-
-    <span class="cm">// 3. Union-Find: each vertex starts as its own set</span>
-    parent <span class="op">=</span> [<span class="num">0</span>, <span class="num">1</span>, <span class="num">2</span>, ... , V<span class="op">-</span><span class="num">1</span>]
-
-    tree <span class="op">=</span> []
-    <span class="kw">for</span> (edge <span class="kw">of</span> edges) {
-      rootA <span class="op">=</span> <span class="fn">findRoot</span>(edge[<span class="num">0</span>])
-      rootB <span class="op">=</span> <span class="fn">findRoot</span>(edge[<span class="num">1</span>])
-      <span class="kw">if</span> (rootA <span class="op">!==</span> rootB) {     <span class="cm">// different components?</span>
-        parent[rootA] <span class="op">=</span> rootB  <span class="cm">// union them</span>
-        tree.<span class="fn">push</span>(edge)         <span class="cm">// add to spanning tree</span>
-      }
-      <span class="cm">// else: same component, skip (would create cycle)</span>
-    }
-    <span class="kw">return</span> tree  <span class="cm">// exactly V-1 edges</span>
+<pre><span class="cm">// Shuffle all edges, then:</span>
+<span class="kw">for</span> (edge <span class="kw">of</span> shuffledEdges) {
+  rootA <span class="op">=</span> <span class="fn">find</span>(edge[<span class="num">0</span>])
+  rootB <span class="op">=</span> <span class="fn">find</span>(edge[<span class="num">1</span>])
+  <span class="kw">if</span> (rootA <span class="op">!==</span> rootB) {     <span class="cm">// different components</span>
+    parent[rootA] <span class="op">=</span> rootB  <span class="cm">// merge them</span>
+    tree.<span class="fn">push</span>(edge)         <span class="cm">// keep this edge</span>
   }
 }</pre>
 
-<h3>Union-Find with path compression</h3>
-<p>The <code>findRoot</code> function uses <em>path compression</em> &mdash; a beautiful trick that makes it nearly O(1):</p>
-
-<pre><span class="fn">findRoot</span>(u) {
-  <span class="kw">if</span> (parent[u] <span class="op">===</span> u) <span class="kw">return</span> u
-  parent[u] <span class="op">=</span> <span class="fn">findRoot</span>(parent[u])  <span class="cm">// compress path</span>
-  <span class="kw">return</span> parent[u]
-}</pre>
-
-<p>Each time you look up a root, you flatten the chain so the next lookup is instant. This makes the entire algorithm nearly linear time &mdash; practically O(E) for E edges.</p>
+<p>Watch below: each cell is colored by its connected component. When two components merge, their cells unify into one color and the wall between them disappears.</p>
 
 <div class="demo-box">
-  <div id="kruskalDemo"></div>
+  <canvas class="graph-canvas" id="kruskalCanvas" width="400" height="350"></canvas>
+  <div class="demo-status" id="kruskalStatus">Components: 30</div>
   <div class="demo-controls">
-    <button onclick="kruskalAnimate()">Run Kruskal's</button>
+    <button onclick="kruskalAnimate()" id="kruskalRunBtn">Run Kruskal's</button>
     <button onclick="kruskalReset()">Reset</button>
     <select id="kruskalSpeed" onchange="kruskalSetSpeed(this.value)">
-      <option value="400">Slow</option>
-      <option value="150" selected>Medium</option>
-      <option value="40">Fast</option>
+      <option value="350">Slow</option>
+      <option value="120" selected>Medium</option>
+      <option value="30">Fast</option>
     </select>
   </div>
-  <div class="demo-label">Watch walls get removed one by one as the spanning tree is built</div>
+  <div class="demo-label">Cells colored by connected component &mdash; watch them merge</div>
 </div>
 </div>
 
 <!-- ===== STEP 5 ===== -->
 <div class="step" id="step5">
 <span class="step-number">5</span>
-<h2>From Edges to Walls</h2>
+<h2>Finding the Solution</h2>
 
-<p>Once we have the spanning tree, turning it into a visible maze is straightforward. Remember, the adjacency list stores a <code>border</code> object for every edge. The border is the actual wall segment between two cells.</p>
+<p>Since a spanning tree has exactly one path between any two vertices, we find it with <strong>DFS</strong> (depth-first search). Starting from the entrance, DFS records each vertex's parent. Then we trace backwards from the exit:</p>
 
-<p>For rectangular mazes, every border is a <code>LineBorder</code> &mdash; a straight line defined by two endpoints:</p>
+<pre><span class="cm">// After DFS fills parent[]:</span>
+path <span class="op">=</span> []
+u <span class="op">=</span> exitVertex
+<span class="kw">while</span> (parent[u] <span class="op">!==</span> u) {
+  path.<span class="fn">push</span>(u)
+  u <span class="op">=</span> parent[u]
+}
+<span class="cm">// path = [exit, ..., start] reversed</span></pre>
 
-<pre><span class="kw">class</span> <span class="fn">LineBorder</span> {
-  constructor(x1, y1, x2, y2)
-  <span class="cm">// The wall from (x1,y1) to (x2,y2) in maze coordinates</span>
-}</pre>
+<p>To draw the solution, we connect the <em>centers</em> of adjacent cells along the path. Each maze type defines <code>getCellCenter(vertex)</code> &mdash; for a rectangle it's <code>(col + 0.5, row + 0.5)</code>; for hexagons it's a trigonometric calculation in the sector's coordinate frame.</p>
 
-<p>The maze generation algorithm gives us a list of edges to <em>keep</em> (the spanning tree = passages). We remove those borders from the adjacency list:</p>
-
-<pre><span class="fn">removeBorders</span>(spanningTreeEdges) {
-  <span class="kw">for</span> ([u, v] <span class="kw">of</span> spanningTreeEdges) {
-    <span class="cm">// Remove the border between u and v</span>
-    <span class="cm">// from BOTH directions (undirected graph)</span>
-    <span class="fn">removeEdge</span>(adjacencylist[u], v)
-    <span class="fn">removeEdge</span>(adjacencylist[v], u)
-  }
-}</pre>
-
-<p>After this, <code>adjacencylist</code> only contains the edges that were <em>not</em> in the spanning tree &mdash; these are the <strong>walls</strong>. To render the maze, we simply draw every remaining border:</p>
-
-<pre><span class="kw">for</span> (i <span class="op">=</span> <span class="num">0</span>; i <span class="op">&lt;</span> vertices; i<span class="op">++</span>)
-  <span class="kw">for</span> (edge <span class="kw">of</span> adjacencylist[i])
-    <span class="kw">if</span> (edge[<span class="num">0</span>] <span class="op">&lt;</span> i)  <span class="cm">// avoid drawing each wall twice</span>
-      <span class="fn">drawLine</span>(edge[<span class="num">1</span>])  <span class="cm">// the border object</span></pre>
-
-<div class="callout">
-  <div class="callout-title">Elegant reversal</div>
-  Notice the cleverness: edges <em>in</em> the spanning tree = passages (removed from adjacency list). Edges <em>not</em> in the spanning tree = walls (remain in adjacency list). The adjacency list starts as "everything is a wall" and we carve passages by removing edges.
+<div class="demo-box">
+  <div id="solutionDemo"></div>
+  <div class="demo-controls">
+    <button onclick="solShow(false)" class="active" id="solBtn1">Maze Only</button>
+    <button onclick="solShow(true)" id="solBtn2">Show Solution</button>
+    <button onclick="solRegen()">New Maze</button>
+  </div>
 </div>
 </div>
 
 <!-- ===== STEP 6 ===== -->
 <div class="step" id="step6">
 <span class="step-number">6</span>
-<h2>Finding the Solution</h2>
+<h2>Beyond Rectangles</h2>
 
-<p>Because a spanning tree has exactly one path between any two vertices, finding the solution is guaranteed. We use <strong>Depth-First Search (DFS)</strong> from the start vertex:</p>
+<p>The generation algorithm only sees vertices and edges &mdash; it doesn't care about geometry. To make a hexagonal maze, we just define a different graph with different border shapes.</p>
 
-<pre><span class="fn">solveMaze</span>(start) {
-  visited <span class="op">=</span> <span class="kw">new</span> <span class="fn">Set</span>()
-  parent <span class="op">=</span> []
-  parent[start] <span class="op">=</span> start  <span class="cm">// start is its own parent</span>
-  <span class="fn">dfs</span>(start)
-
-  <span class="cm">// Trace path from end back to start</span>
-  path <span class="op">=</span> []
-  u <span class="op">=</span> endVertex
-  <span class="kw">while</span> (parent[u] <span class="op">!==</span> u) {
-    path.<span class="fn">push</span>(u)
-    u <span class="op">=</span> parent[u]
-  }
-  <span class="kw">return</span> path.<span class="fn">reverse</span>()
-}</pre>
-
-<p>DFS explores as deep as possible along each branch before backtracking. In a tree (no cycles), this visits every vertex exactly once and records the parent of each vertex. To find the solution, we just trace backwards from the end vertex using the parent array.</p>
+<p>Our hexagonal maze divides a hexagon into <em>6 sectors</em>, each containing triangular cells. Each sector is rotated 60&deg; from the previous one:</p>
 
 <div class="demo-box">
-  <div id="solutionDemo"></div>
-  <div class="demo-controls">
-    <button onclick="solutionAnimate('maze')">Show Maze</button>
-    <button onclick="solutionAnimate('solve')">Solve It</button>
-    <button onclick="solutionAnimate('regen')">New Maze</button>
-  </div>
-  <div class="demo-label">Generate a maze and watch the solution being traced</div>
+  <svg id="sectorDiagram" width="280" height="260" viewBox="-150 -150 300 300" style="max-width:280px">
+    <!-- drawn by JS -->
+  </svg>
+  <div class="demo-label">6 triangular sectors, each rotated 60&deg;</div>
 </div>
 
-<div class="callout-blue callout">
-  <div class="callout-title">Why DFS works perfectly here</div>
-  <p style="margin-bottom:0">In a tree, DFS and BFS both find the <em>only</em> path (since there's exactly one). We use DFS because it naturally follows corridors to their end before backtracking &mdash; exactly how you'd solve a maze by hand with the "always turn left" strategy.</p>
+<p>Cells are addressed as <code>(sector, updown, row, col)</code> and positioned using rotated basis vectors. But the algorithm is identical &mdash; Kruskal's doesn't know or care that these are triangles arranged in a hexagon.</p>
+
+<div class="demo-box">
+  <div id="hexDemo"></div>
+  <div class="demo-controls">
+    <button onclick="hexShow('grid')" class="active" id="hexBtn1">All Walls</button>
+    <button onclick="hexShow('maze')" id="hexBtn2">Maze</button>
+    <button onclick="hexShow('solve')" id="hexBtn3">Solution</button>
+    <button onclick="hexRegen()">New</button>
+  </div>
+  <div class="demo-label">Same algorithm, completely different geometry</div>
 </div>
 </div>
 
 <!-- ===== STEP 7 ===== -->
 <div class="step" id="step7">
 <span class="step-number">7</span>
-<h2>Beyond Rectangles: Hexagonal Mazes</h2>
-
-<p>The beauty of the graph abstraction is that the generation algorithm doesn't care about geometry at all. Kruskal's algorithm just sees vertices and edges &mdash; whether those vertices represent squares, hexagons, or triangles doesn't matter.</p>
-
-<p>To create a hexagonal maze, we just need to define:</p>
-<ol style="padding-left:24px;margin-bottom:14px">
-  <li>What the vertices are (triangular cells in a hexagonal arrangement)</li>
-  <li>Which vertices are neighbors (which cells share an edge)</li>
-  <li>Where the borders are (the wall line segments)</li>
-</ol>
-
-<p>The hexagonal maze uses an elegant <em>sector-based</em> coordinate system. The hexagon is divided into 6 equilateral triangular sectors, each rotated by 60 degrees:</p>
-
-<div class="ascii">        Sector 1
-       /\    /\
-      /  \  /  \
-  S0 /    \/    \ S2
-    /     /\     \
-   /     /  \     \
-   \    / C  \    /
-    \  /      \  /
-  S5 \/   S3   \/ S3
-      \       /
-       \     /
-        \   /
-      Sector 4</div>
-
-<p>Each sector contains triangular cells addressed by (sector, updown, row, column). The formula for the vertex index encodes all four components:</p>
-
-<pre><span class="fn">vertexIndex</span>(sector, updown, row, col) <span class="op">=</span>
-  sector <span class="op">*</span> sectorSize <span class="op">+</span> <span class="fn">triangleIndex</span>(updown, row, col)</pre>
-
-<p>The cell coordinates use trigonometry. Each sector's base is rotated:</p>
-
-<pre><span class="cm">// Position = base + row * v_row + col * v_col</span>
-<span class="cm">// where v_row and v_col are rotated by sector * 60 degrees</span>
-angle <span class="op">=</span> sector <span class="op">*</span> Math.<span class="fn">PI</span> <span class="op">/</span> <span class="num">3</span>
-x <span class="op">=</span> baseX <span class="op">+</span> row <span class="op">*</span> <span class="fn">cos</span>(angle) <span class="op">+</span> col <span class="op">*</span> <span class="fn">cos</span>(angle <span class="op">+</span> <span class="num">60</span>&deg;)
-y <span class="op">=</span> baseY <span class="op">+</span> row <span class="op">*</span> <span class="fn">sin</span>(angle) <span class="op">+</span> col <span class="op">*</span> <span class="fn">sin</span>(angle <span class="op">+</span> <span class="num">60</span>&deg;)</pre>
-
-<div class="demo-box">
-  <div id="hexDemo"></div>
-  <div class="demo-controls">
-    <button onclick="hexDemoShow('grid')">Hex Grid</button>
-    <button onclick="hexDemoShow('maze')">Generate Maze</button>
-    <button onclick="hexDemoShow('solve')">Show Solution</button>
-  </div>
-  <div class="demo-label">Same algorithm, completely different geometry</div>
-</div>
-
-<p>This same principle extends to <strong>circular mazes</strong> (concentric rings with <code>ArcBorder</code> walls), <strong>honeycomb mazes</strong>, and <strong>triangular mazes</strong>. The algorithm never changes &mdash; only the graph structure and coordinate mapping do.</p>
-</div>
-
-<!-- ===== STEP 8 ===== -->
-<div class="step" id="step8">
-<span class="step-number">8</span>
-<h2>Rendering: Math to Pixels</h2>
-
-<p>The final piece is turning abstract coordinates into pixels on screen. Every maze type has a coordinate system where cell borders live. We need to transform those into screen coordinates.</p>
-
-<h3>The coordinate pipeline</h3>
-
-<pre><span class="cm">// 1. Get the bounding box of the maze</span>
-[xmin, ymin, xmax, ymax] <span class="op">=</span> maze.<span class="fn">getCoordinateBounds</span>()
-
-<span class="cm">// 2. Compute a scale factor to fit the viewport</span>
-scale <span class="op">=</span> Math.<span class="fn">min</span>(targetWidth <span class="op">/</span> mazeWidth, targetHeight <span class="op">/</span> mazeHeight)
-
-<span class="cm">// 3. Transform coordinates: flip Y axis, offset, and scale</span>
-<span class="fn">toScreenX</span>(mx) <span class="op">=</span> (mx <span class="op">-</span> xmin <span class="op">+</span> padding) <span class="op">*</span> scale
-<span class="fn">toScreenY</span>(my) <span class="op">=</span> (ymax <span class="op">+</span> padding <span class="op">-</span> my) <span class="op">*</span> scale  <span class="cm">// Y flipped!</span></pre>
-
-<p>The Y-flip is needed because mathematical coordinates go up, but screen coordinates go down. SVG handles this with a <code>scale(1, -1)</code> transform; the Canvas API in the game does it manually.</p>
-
-<h3>Two types of borders</h3>
-<p><strong>LineBorder</strong> (straight walls): Just draw a line from (x1, y1) to (x2, y2), scaled and transformed.</p>
-<p><strong>ArcBorder</strong> (curved walls in circular mazes): Defined by center (cx, cy), radius r, and angle range [theta1, theta2]. Rendered as an SVG arc path.</p>
-
-<h3>Rendering the solution</h3>
-<p>The solution path connects cell <em>centers</em>. For each edge in the solution, we compute the centers of both cells and draw a line between them:</p>
-
-<pre><span class="kw">for</span> (edge <span class="kw">of</span> solution) {
-  [x1, y1] <span class="op">=</span> <span class="fn">getCellCenter</span>(u)   <span class="cm">// e.g., [col + 0.5, row + 0.5]</span>
-  [x2, y2] <span class="op">=</span> <span class="fn">getCellCenter</span>(v)
-  <span class="fn">drawLine</span>(x1 <span class="op">*</span> scale, y1 <span class="op">*</span> scale, x2 <span class="op">*</span> scale, y2 <span class="op">*</span> scale)
-}</pre>
-
-<div class="callout">
-  <div class="callout-title">Themes</div>
-  Colors are decoupled from geometry via a <em>theme</em> object: <code>{ wallColor, backgroundColor, solutionColor, breakColor }</code>. Switching themes just swaps colors &mdash; no geometry recalculation needed.
-</div>
-</div>
-
-<!-- ===== STEP 9 ===== -->
-<div class="step" id="step9">
-<span class="step-number">9</span>
 <h2>Try It Yourself</h2>
 
-<p>Now that you understand the pieces, play with them all together. Pick a shape, size, and algorithm, and watch how each choice affects the maze:</p>
-
 <div class="demo-box">
-  <div id="playgroundMaze" style="min-height:100px"></div>
+  <div id="playgroundMaze" style="min-height:80px"></div>
   <div class="demo-controls">
     <select id="pgShape" onchange="playgroundUpdate()">
       <option value="rect">Rectangular</option>
@@ -559,347 +310,488 @@ scale <span class="op">=</span> Math.<span class="fn">min</span>(targetWidth <sp
       <option value="dungeon">Dungeon</option>
       <option value="ice">Ice</option>
     </select>
-    <label style="font-size:0.8em;display:flex;align-items:center;gap:4px;color:#aaa">
+    <label style="font-size:0.78em;display:flex;align-items:center;gap:4px;color:#aaa">
       <input type="checkbox" id="pgSolution" onchange="playgroundUpdate()"> Solution
     </label>
-  </div>
-  <div class="demo-controls">
     <button onclick="playgroundUpdate()">New Maze</button>
   </div>
 </div>
 
-<p>And that's everything! The whole system is built on a single powerful idea: <strong>represent the maze as a graph, find a random spanning tree, and draw whatever's left as walls</strong>. The abstraction lets us reuse the same algorithm for any geometry &mdash; squares, hexagons, circles &mdash; just by changing how we define vertices and borders.</p>
+<p>The whole system: <strong>graph &rarr; spanning tree &rarr; remove walls &rarr; draw borders</strong>. The abstraction lets any geometry &mdash; rectangles, hexagons, circles &mdash; reuse the same algorithm by changing only how vertices and borders are defined.</p>
 
 <div class="callout-blue callout">
-  <div class="callout-title">Where to go from here</div>
-  <p style="margin-bottom:0">Try the <a href="index.html" style="color:#82aaff">full generator</a> with animation to watch Kruskal's algorithm build mazes in real time. Or <a href="play.html" style="color:#82aaff">play the game</a> &mdash; now that you know how the maze is constructed, can you solve them faster?</p>
+  <div class="callout-title">Explore further</div>
+  <p style="margin-bottom:0">Try the <a href="index.html" style="color:#82aaff">full generator</a> with animation to watch walls fall in real time, or <a href="play.html" style="color:#82aaff">play the game</a>.</p>
 </div>
 </div>
 
 </main>
 
-<!-- ===== SCRIPTS ===== -->
 <script src="maze-bundle.js?v=5"></script>
 <script>
 const { RectangularMaze, HexagonalMaze, Kruskal, getTheme } = MazeGen;
+const DPR = window.devicePixelRatio || 1;
+
+function setupCanvas(id, w, h) {
+  const c = document.getElementById(id);
+  c.width = w * DPR; c.height = h * DPR;
+  c.style.width = w + 'px'; c.style.height = h + 'px';
+  const ctx = c.getContext('2d');
+  ctx.scale(DPR, DPR);
+  return { c, ctx, w, h };
+}
+
+function setActiveBtn(prefix, n) {
+  for (let i = 1; i <= 3; i++) {
+    const b = document.getElementById(prefix + i);
+    if (b) b.classList.toggle('active', i === n);
+  }
+}
 
 // ==========================================
-//  STEP 1: Simple graph demo (canvas)
+//  STEP 1: Simple graph
 // ==========================================
 (function(){
-  const c = document.getElementById('graphDemo1');
-  const ctx = c.getContext('2d');
-  const dpr = window.devicePixelRatio || 1;
-  c.width = 360 * dpr; c.height = 200 * dpr;
-  c.style.width = '360px'; c.style.height = '200px';
-  ctx.scale(dpr, dpr);
-
-  const verts = [
-    {x:60,y:50},{x:160,y:30},{x:280,y:50},
-    {x:80,y:150},{x:200,y:160},{x:300,y:140}
-  ];
-  const edges = [[0,1],[1,2],[0,3],[1,4],[2,5],[3,4],[4,5]];
-
-  function draw() {
-    ctx.clearRect(0,0,360,200);
-    // Edges
-    ctx.strokeStyle = '#334';ctx.lineWidth = 2;
-    for (const [a,b] of edges) {
-      ctx.beginPath();ctx.moveTo(verts[a].x,verts[a].y);ctx.lineTo(verts[b].x,verts[b].y);ctx.stroke();
-    }
-    // Edge labels
-    ctx.fillStyle = '#546';ctx.font = '10px sans-serif';ctx.textAlign = 'center';
-    for (const [a,b] of edges) {
-      const mx = (verts[a].x+verts[b].x)/2, my = (verts[a].y+verts[b].y)/2;
-      ctx.fillText('edge', mx, my - 5);
-    }
-    // Vertices
-    for (let i = 0; i < verts.length; i++) {
-      ctx.fillStyle = '#e94560';
-      ctx.beginPath();ctx.arc(verts[i].x,verts[i].y,12,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle = '#fff';ctx.font = 'bold 11px sans-serif';ctx.textAlign = 'center';ctx.textBaseline = 'middle';
-      ctx.fillText(i, verts[i].x, verts[i].y);
-    }
+  const { ctx } = setupCanvas('graphDemo1', 360, 180);
+  const V = [{x:55,y:45},{x:155,y:30},{x:275,y:45},{x:75,y:140},{x:195,y:150},{x:295,y:130}];
+  const E = [[0,1],[1,2],[0,3],[1,4],[2,5],[3,4],[4,5]];
+  ctx.strokeStyle = '#334'; ctx.lineWidth = 2;
+  for (const [a,b] of E) { ctx.beginPath(); ctx.moveTo(V[a].x,V[a].y); ctx.lineTo(V[b].x,V[b].y); ctx.stroke(); }
+  for (let i = 0; i < V.length; i++) {
+    ctx.fillStyle = '#e94560'; ctx.beginPath(); ctx.arc(V[i].x,V[i].y,12,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(i, V[i].x, V[i].y);
   }
-  draw();
 })();
 
 // ==========================================
-//  STEP 2: Grid graph demo (live maze SVG)
+//  STEP 2: Grid graph (canvas)
 // ==========================================
-let gridMaze, gridMazeState = 'full';
+const GCOLS = 4, GROWS = 3, GCW = 75, GCH = 75, GOX = 45, GOY = 20;
 
-function gridGraphStep(mode) {
-  gridMazeState = mode;
-  const cont = document.getElementById('gridGraphDemo');
-  cont.innerHTML = '';
+function gPos(v) {
+  const r = Math.floor(v / GCOLS), c = v % GCOLS;
+  return { x: GOX + c * GCW + GCW/2, y: GOY + r * GCH + GCH/2 };
+}
 
-  const m = new RectangularMaze(4, 3);
-  m.initializeGraph();
-  gridMaze = m;
+function gridDraw(mode) {
+  setActiveBtn('gridBtn', mode === 'cells' ? 1 : mode === 'adj' ? 2 : 3);
+  const { ctx, w, h } = setupCanvas('gridDemo', 400, 280);
+  ctx.clearRect(0, 0, w, h);
 
-  // We render the full grid (all walls) as SVG
-  const theme = getTheme('classic');
-  const svg = m.renderSVG(false, 'classic');
-  cont.appendChild(svg);
+  // Draw cell backgrounds
+  for (let v = 0; v < GCOLS*GROWS; v++) {
+    const r = Math.floor(v / GCOLS), c = v % GCOLS;
+    const x = GOX + c * GCW, y = GOY + r * GCH;
+    if (mode === 'adj' && v === 5) {
+      ctx.fillStyle = 'rgba(233,69,96,0.2)'; ctx.fillRect(x, y, GCW, GCH);
+    }
+    if (mode === 'adj' && [1,4,6,9].includes(v)) {
+      ctx.fillStyle = 'rgba(130,170,255,0.15)'; ctx.fillRect(x, y, GCW, GCH);
+    }
+  }
+
+  // Draw grid lines
+  ctx.strokeStyle = '#556'; ctx.lineWidth = 2; ctx.lineCap = 'round';
+  for (let r = 0; r <= GROWS; r++) {
+    const y = GOY + r * GCH;
+    if (mode === 'entry' && r === 0) continue; // skip top for redraw with gap
+    ctx.beginPath(); ctx.moveTo(GOX, y); ctx.lineTo(GOX + GCOLS * GCW, y); ctx.stroke();
+  }
+  for (let c = 0; c <= GCOLS; c++) {
+    const x = GOX + c * GCW;
+    ctx.beginPath(); ctx.moveTo(x, GOY); ctx.lineTo(x, GOY + GROWS * GCH); ctx.stroke();
+  }
 
   if (mode === 'entry') {
-    // Highlight the entry/exit gaps
-    const overlay = document.createElementNS('http://www.w3.org/2000/svg','g');
-    // Entry marker (top-left)
-    const c1 = document.createElementNS('http://www.w3.org/2000/svg','text');
-    c1.setAttribute('x','2');c1.setAttribute('y','-5');
-    c1.setAttribute('fill','#e94560');c1.setAttribute('font-size','12');
-    c1.setAttribute('font-weight','bold');c1.setAttribute('transform','scale(1,-1)');
-    c1.textContent = 'IN';
-    svg.firstChild.appendChild(c1);
-    // Exit marker (bottom-right)
-    const bounds = m.getCoordinateBounds();
-    const c2 = document.createElementNS('http://www.w3.org/2000/svg','text');
-    const sc = parseFloat(svg.getAttribute('width')) / (bounds[2] - bounds[0] + 2);
-    c2.setAttribute('x', String((bounds[2]-0.5)*sc));
-    c2.setAttribute('y', String((-bounds[3]+0.1)*sc));
-    c2.setAttribute('fill','#e94560');c2.setAttribute('font-size','12');
-    c2.setAttribute('font-weight','bold');c2.setAttribute('transform','scale(1,-1)');
-    c2.textContent = 'OUT';
-    svg.firstChild.appendChild(c2);
+    // Redraw top with gap for entry
+    ctx.strokeStyle = '#556'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(GOX + GCW, GOY); ctx.lineTo(GOX + GCOLS * GCW, GOY); ctx.stroke();
+    // Erase right wall at last row for exit
+    ctx.strokeStyle = '#0f0f23'; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(GOX + GCOLS * GCW, GOY + (GROWS-1) * GCH + 2); ctx.lineTo(GOX + GCOLS * GCW, GOY + GROWS * GCH - 2); ctx.stroke();
+    // Redraw right wall with gap
+    ctx.strokeStyle = '#556'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(GOX + GCOLS * GCW, GOY); ctx.lineTo(GOX + GCOLS * GCW, GOY + (GROWS-1) * GCH); ctx.stroke();
+    // Entry arrow
+    ctx.fillStyle = '#e94560'; ctx.font = 'bold 13px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('IN \u2192', GOX + GCW/2 - 2, GOY - 6);
+    ctx.fillText('\u2192 OUT', GOX + GCOLS * GCW + 24, GOY + (GROWS-0.5) * GCH + 4);
+  }
+
+  if (mode === 'adj') {
+    // Draw arrows from vertex 5 to neighbors
+    ctx.strokeStyle = '#e94560'; ctx.lineWidth = 2;
+    const from = gPos(5);
+    for (const n of [1, 4, 6, 9]) {
+      const to = gPos(n);
+      const dx = to.x - from.x, dy = to.y - from.y;
+      const len = Math.sqrt(dx*dx + dy*dy);
+      const nx = dx/len, ny = dy/len;
+      const ax = from.x + nx * 18, ay = from.y + ny * 18;
+      const bx = to.x - nx * 18, by = to.y - ny * 18;
+      ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+      // Arrowhead
+      ctx.fillStyle = '#e94560'; ctx.beginPath();
+      ctx.moveTo(bx, by);
+      ctx.lineTo(bx - nx*8 - ny*5, by - ny*8 + nx*5);
+      ctx.lineTo(bx - nx*8 + ny*5, by - ny*8 - nx*5);
+      ctx.fill();
+    }
+  }
+
+  // Vertex labels
+  for (let v = 0; v < GCOLS*GROWS; v++) {
+    const p = gPos(v);
+    const highlight = mode === 'adj' && v === 5;
+    ctx.fillStyle = highlight ? '#e94560' : '#82aaff';
+    ctx.font = (highlight ? 'bold ' : '') + '13px sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(v, p.x, p.y);
+  }
+
+  if (mode === 'adj') {
+    ctx.fillStyle = '#888'; ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('Vertex 5 neighbors: [1, 4, 6, 9]', w/2, h - 8);
   }
 }
-gridGraphStep('full');
+gridDraw('cells');
 
 // ==========================================
-//  STEP 3: Spanning tree demo (canvas)
+//  STEP 3: Spanning tree (consistent views)
 // ==========================================
-let stMode = 'graph';
-function stDemo(mode) {
-  stMode = mode;
-  const c = document.getElementById('spanningTreeDemo');
-  const ctx = c.getContext('2d');
-  const dpr = window.devicePixelRatio || 1;
-  c.width = 360 * dpr; c.height = 260 * dpr;
-  c.style.width = '360px'; c.style.height = '260px';
-  ctx.scale(dpr, dpr);
+// Fixed spanning tree for 4x3 grid so all 3 views match
+const ST_TREE = [[0,1],[1,2],[2,3],[0,4],[4,5],[5,9],[9,8],[5,6],[6,7],[7,11],[9,10]];
+const ST_TREE_SET = new Set();
+ST_TREE.forEach(([a,b]) => { ST_TREE_SET.add(a+','+b); ST_TREE_SET.add(b+','+a); });
 
-  // 3x3 grid for illustration
-  const cols = 4, rows = 3;
-  const cw = 70, ch = 70, ox = 35, oy = 20;
-  const pos = [];
-  for (let r = 0; r < rows; r++)
-    for (let co = 0; co < cols; co++)
-      pos.push({x: ox + co * cw + cw/2, y: oy + r * ch + ch/2});
+// All possible grid edges
+const ST_ALL = [];
+for (let r = 0; r < GROWS; r++)
+  for (let c = 0; c < GCOLS; c++) {
+    const v = r * GCOLS + c;
+    if (c < GCOLS-1) ST_ALL.push([v, v+1]);
+    if (r < GROWS-1) ST_ALL.push([v, v+GCOLS]);
+  }
 
-  // All grid edges
-  const allEdges = [];
-  for (let r = 0; r < rows; r++)
-    for (let co = 0; co < cols; co++) {
-      const v = r * cols + co;
-      if (co < cols-1) allEdges.push([v, v+1]);
-      if (r < rows-1) allEdges.push([v, v+cols]);
-    }
-
-  // Fixed spanning tree (for demonstration)
-  const treeEdges = [[0,1],[1,2],[2,3],[0,4],[4,5],[5,9],[9,8],[5,6],[6,7],[7,11],[9,10]];
-  const treeSet = new Set(treeEdges.map(e => e[0]+','+e[1]));
-
-  ctx.clearRect(0,0,360,260);
+function stDraw(mode) {
+  setActiveBtn('stBtn', mode === 'graph' ? 1 : mode === 'tree' ? 2 : 3);
+  const { ctx, w, h } = setupCanvas('spanningTreeDemo', 400, 280);
+  const status = document.getElementById('stStatus');
 
   if (mode === 'maze') {
-    // Draw as maze: tree edges = no wall, other edges = wall
-    ctx.strokeStyle = '#667';ctx.lineWidth = 3;ctx.lineCap = 'round';
-    for (let r = 0; r <= rows; r++) {
-      for (let co = 0; co <= cols; co++) {
-        const x = ox + co * cw, y = oy + r * ch;
-        // Horizontal wall above row r between co-1 and co
-        if (co < cols && r > 0) {
-          const v1 = (r-1)*cols+co, v2 = r*cols+co;
-          const inTree = treeSet.has(v1+','+v2) || treeSet.has(v2+','+v1);
-          if (!inTree) {ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+cw,y);ctx.stroke();}
-        }
-        // Vertical wall left of col co between r-1 and r
-        if (r < rows && co > 0) {
-          const v1 = r*cols+(co-1), v2 = r*cols+co;
-          const inTree = treeSet.has(v1+','+v2) || treeSet.has(v2+','+v1);
-          if (!inTree) {ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x,y+ch);ctx.stroke();}
-        }
-      }
-    }
-    // Outer walls
+    // Draw as a maze: non-tree edges become walls, tree edges are open
+    status.textContent = 'Non-tree edges \u2192 walls';
+    ctx.strokeStyle = '#8892a8'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+    // Outer walls (with entry/exit gaps)
     ctx.beginPath();
-    // Top
-    ctx.moveTo(ox,oy);ctx.lineTo(ox+cols*cw,oy);
-    // Bottom
-    ctx.moveTo(ox,oy+rows*ch);ctx.lineTo(ox+cols*cw,oy+rows*ch);
-    // Left (with entry gap at row 0)
-    ctx.moveTo(ox,oy+ch);ctx.lineTo(ox,oy+rows*ch);
-    // Right (with exit gap at last row)
-    ctx.moveTo(ox+cols*cw,oy);ctx.lineTo(ox+cols*cw,oy+(rows-1)*ch);
+    ctx.moveTo(GOX + GCW, GOY); ctx.lineTo(GOX + GCOLS*GCW, GOY); // top (gap at col 0)
+    ctx.moveTo(GOX, GOY); ctx.lineTo(GOX, GOY + GROWS*GCH); // left full
+    ctx.moveTo(GOX, GOY + GROWS*GCH); ctx.lineTo(GOX + GCOLS*GCW, GOY + GROWS*GCH); // bottom
+    ctx.moveTo(GOX + GCOLS*GCW, GOY); ctx.lineTo(GOX + GCOLS*GCW, GOY + (GROWS-1)*GCH); // right (gap at last row)
     ctx.stroke();
-    // Labels
-    ctx.fillStyle = '#e94560';ctx.font = 'bold 12px sans-serif';ctx.textAlign = 'center';
-    ctx.fillText('IN', ox-14, oy+ch/2+4);
-    ctx.fillText('OUT', ox+cols*cw+18, oy+(rows-0.5)*ch+4);
+    // Internal walls (non-tree edges)
+    for (const [a, b] of ST_ALL) {
+      if (ST_TREE_SET.has(a+','+b)) continue; // tree edge = passage
+      const ra = Math.floor(a / GCOLS), ca = a % GCOLS;
+      const rb = Math.floor(b / GCOLS), cb = b % GCOLS;
+      ctx.beginPath();
+      if (ra === rb) {
+        // Horizontal neighbors → vertical wall between them
+        const x = GOX + Math.max(ca, cb) * GCW;
+        ctx.moveTo(x, GOY + ra * GCH); ctx.lineTo(x, GOY + (ra+1) * GCH);
+      } else {
+        // Vertical neighbors → horizontal wall between them
+        const y = GOY + Math.max(ra, rb) * GCH;
+        ctx.moveTo(GOX + ca * GCW, y); ctx.lineTo(GOX + (ca+1) * GCW, y);
+      }
+      ctx.stroke();
+    }
+    // Entry/exit labels
+    ctx.fillStyle = '#e94560'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('IN', GOX + GCW/2, GOY - 6);
+    ctx.fillText('OUT', GOX + GCOLS*GCW + 18, GOY + (GROWS-0.5)*GCH + 4);
+    // Faint vertex numbers
+    ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.font = '11px sans-serif';
+    for (let v = 0; v < GCOLS*GROWS; v++) {
+      const p = gPos(v); ctx.fillText(v, p.x, p.y);
+    }
     return;
   }
 
+  // Graph / tree view: show vertices as circles with edges
+  status.textContent = mode === 'tree'
+    ? ST_TREE.length + ' edges (V\u22121 = ' + (GCOLS*GROWS) + '\u22121 = ' + ST_TREE.length + ')'
+    : ST_ALL.length + ' edges total';
+
   // Draw edges
-  for (const [a,b] of allEdges) {
-    const inTree = treeSet.has(a+','+b) || treeSet.has(b+','+a);
+  for (const [a, b] of ST_ALL) {
+    const inTree = ST_TREE_SET.has(a+','+b);
     if (mode === 'tree' && !inTree) {
-      ctx.strokeStyle = '#222';ctx.lineWidth = 1;ctx.setLineDash([3,3]);
+      ctx.strokeStyle = '#1a1a2e'; ctx.lineWidth = 1; ctx.setLineDash([4,4]);
     } else if (mode === 'tree' && inTree) {
-      ctx.strokeStyle = '#e94560';ctx.lineWidth = 3;ctx.setLineDash([]);
+      ctx.strokeStyle = '#e94560'; ctx.lineWidth = 3; ctx.setLineDash([]);
     } else {
-      ctx.strokeStyle = '#445';ctx.lineWidth = 2;ctx.setLineDash([]);
+      ctx.strokeStyle = '#445'; ctx.lineWidth = 2; ctx.setLineDash([]);
     }
-    ctx.beginPath();ctx.moveTo(pos[a].x,pos[a].y);ctx.lineTo(pos[b].x,pos[b].y);ctx.stroke();
+    const pa = gPos(a), pb = gPos(b);
+    ctx.beginPath(); ctx.moveTo(pa.x, pa.y); ctx.lineTo(pb.x, pb.y); ctx.stroke();
   }
   ctx.setLineDash([]);
 
   // Draw vertices
-  for (let i = 0; i < pos.length; i++) {
-    ctx.fillStyle = (mode === 'tree') ? '#1a1a2e' : '#1a1a2e';
-    ctx.strokeStyle = (mode === 'tree') ? '#e94560' : '#667';
-    ctx.lineWidth = 2;
-    ctx.beginPath();ctx.arc(pos[i].x,pos[i].y,14,0,Math.PI*2);ctx.fill();ctx.stroke();
-    ctx.fillStyle = '#fff';ctx.font = 'bold 11px sans-serif';ctx.textAlign = 'center';ctx.textBaseline = 'middle';
-    ctx.fillText(i, pos[i].x, pos[i].y);
-  }
-
-  if (mode === 'tree') {
-    ctx.fillStyle = '#546';ctx.font = '11px sans-serif';ctx.textAlign = 'center';
-    ctx.fillText(`${treeEdges.length} edges kept (V-1 = ${pos.length}-1 = ${pos.length-1})`, 180, 250);
+  for (let v = 0; v < GCOLS*GROWS; v++) {
+    const p = gPos(v);
+    ctx.fillStyle = '#0f0f23'; ctx.strokeStyle = mode === 'tree' ? '#e94560' : '#556'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(p.x, p.y, 14, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(v, p.x, p.y);
   }
 }
-stDemo('graph');
+stDraw('graph');
 
 // ==========================================
-//  STEP 4: Kruskal's animation
+//  STEP 4: Kruskal's with component coloring
 // ==========================================
-let kruskalInterval = null, kruskalDelay = 150;
+const KR = 6, KC = 5; // 6 wide, 5 tall = 30 cells
+const KCW = 55, KCH = 55, KOX = 35, KOY = 15;
+let kruskalInterval = null, kruskalDelay = 120;
+let kParent, kColor, kWalls, kEdges, kIdx, kRunning = false;
+
+function kHue(id) { return (id * 137.508 + 30) % 360; }
+
+function kFind(u) { return kParent[u] === u ? u : (kParent[u] = kFind(kParent[u])); }
 
 function kruskalSetSpeed(v) { kruskalDelay = parseInt(v); }
 
+function kruskalDraw(highlightEdge) {
+  const { ctx, w, h } = setupCanvas('kruskalCanvas', 400, 350);
+
+  // Cell backgrounds colored by component
+  for (let v = 0; v < KR * KC; v++) {
+    const r = Math.floor(v / KR), c = v % KR;
+    const root = kFind(v);
+    ctx.fillStyle = `hsl(${kHue(root)}, 55%, 35%)`;
+    ctx.fillRect(KOX + c * KCW, KOY + r * KCH, KCW, KCH);
+  }
+
+  // Highlight merging cells
+  if (highlightEdge) {
+    const [u, v] = highlightEdge;
+    const ru = Math.floor(u / KR), cu = u % KR;
+    const rv = Math.floor(v / KR), cv = v % KR;
+    ctx.fillStyle = 'rgba(255,255,255,0.2)';
+    ctx.fillRect(KOX + cu * KCW, KOY + ru * KCH, KCW, KCH);
+    ctx.fillRect(KOX + cv * KCW, KOY + rv * KCH, KCW, KCH);
+  }
+
+  // Walls
+  ctx.strokeStyle = '#0f0f23'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+
+  // Outer boundary
+  ctx.beginPath();
+  ctx.rect(KOX, KOY, KR * KCW, KC * KCH);
+  ctx.stroke();
+
+  // Internal walls
+  for (const key of kWalls) {
+    const [a, b] = key.split(',').map(Number);
+    const ra = Math.floor(a / KR), ca = a % KR;
+    const rb = Math.floor(b / KR), cb = b % KR;
+    ctx.beginPath();
+    if (ra === rb) {
+      const x = KOX + Math.max(ca, cb) * KCW;
+      ctx.moveTo(x, KOY + ra * KCH); ctx.lineTo(x, KOY + (ra+1) * KCH);
+    } else {
+      const y = KOY + Math.max(ra, rb) * KCH;
+      ctx.moveTo(KOX + ca * KCW, y); ctx.lineTo(KOX + (ca+1) * KCW, y);
+    }
+    ctx.stroke();
+  }
+
+  // Vertex numbers (faint)
+  ctx.fillStyle = 'rgba(255,255,255,0.45)'; ctx.font = '11px sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (let v = 0; v < KR * KC; v++) {
+    const r = Math.floor(v / KR), c = v % KR;
+    ctx.fillText(v, KOX + c * KCW + KCW/2, KOY + r * KCH + KCH/2);
+  }
+
+  // Component count
+  const roots = new Set();
+  for (let v = 0; v < KR * KC; v++) roots.add(kFind(v));
+  document.getElementById('kruskalStatus').textContent = 'Components: ' + roots.size;
+}
+
 function kruskalReset() {
   clearInterval(kruskalInterval);
-  const cont = document.getElementById('kruskalDemo');
-  cont.innerHTML = '';
-  const m = new RectangularMaze(6, 5);
-  m.initializeGraph();
-  const {svg, borderMap} = m.renderSVGFull('neon');
-  cont.appendChild(svg);
-  cont._maze = m;
-  cont._borderMap = borderMap;
+  kRunning = false;
+  document.getElementById('kruskalRunBtn').textContent = 'Run Kruskal\'s';
+  kParent = Array.from({length: KR * KC}, (_, i) => i);
+
+  // Build all internal edges
+  kEdges = [];
+  kWalls = new Set();
+  for (let r = 0; r < KC; r++)
+    for (let c = 0; c < KR; c++) {
+      const v = r * KR + c;
+      if (c < KR - 1) { kEdges.push([v, v+1]); kWalls.add(v+','+(v+1)); }
+      if (r < KC - 1) { kEdges.push([v, v+KR]); kWalls.add(v+','+(v+KR)); }
+    }
+
+  // Shuffle
+  for (let i = kEdges.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [kEdges[i], kEdges[j]] = [kEdges[j], kEdges[i]];
+  }
+  kIdx = 0;
+  kruskalDraw(null);
 }
 
 function kruskalAnimate() {
-  clearInterval(kruskalInterval);
-  kruskalReset();
-  const cont = document.getElementById('kruskalDemo');
-  const m = cont._maze;
-  const borderMap = cont._borderMap;
+  if (kRunning) return;
+  if (kIdx >= kEdges.length) kruskalReset();
+  kRunning = true;
+  document.getElementById('kruskalRunBtn').textContent = 'Running...';
 
-  // Re-create maze and get spanning tree edges step by step
-  const m2 = new RectangularMaze(6, 5);
-  m2.initializeGraph();
-
-  // Collect edges
-  const edges = [];
-  for (let i = 0; i < m2.vertices; i++)
-    for (const edge of m2.adjacencylist[i])
-      if (edge[0] > i) edges.push([i, edge[0]]);
-
-  // Shuffle
-  for (let i = edges.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [edges[i], edges[j]] = [edges[j], edges[i]];
-  }
-
-  // Union-Find
-  const parent = [];
-  for (let i = 0; i < m2.vertices; i++) parent.push(i);
-  function find(u) { return parent[u] === u ? u : (parent[u] = find(parent[u])); }
-
-  // Also find the border for each edge in the original maze
-  const edgeToBorder = new Map();
-  for (let i = 0; i < m.vertices; i++) {
-    for (const edge of m.adjacencylist[i]) {
-      if (edge[0] > i) {
-        const key = i + ',' + edge[0];
-        edgeToBorder.set(key, edge[1]);
-      }
-    }
-  }
-
-  let idx = 0;
   kruskalInterval = setInterval(() => {
-    if (idx >= edges.length) { clearInterval(kruskalInterval); return; }
-    const [u, v] = edges[idx];
-    const pu = find(u), pv = find(v);
-    const key = Math.min(u,v) + ',' + Math.max(u,v);
-    const border = edgeToBorder.get(key);
-
-    if (pu !== pv) {
-      parent[pu] = pv;
-      // Remove wall with animation
-      if (border) {
-        const el = borderMap.get(border);
-        if (el) {
-          el.style.stroke = '#e94560';
-          el.style.transition = 'opacity 0.3s';
-          setTimeout(() => { el.style.opacity = '0'; }, 100);
-        }
-      }
+    if (kIdx >= kEdges.length) {
+      clearInterval(kruskalInterval);
+      kRunning = false;
+      document.getElementById('kruskalRunBtn').textContent = 'Run Kruskal\'s';
+      kruskalDraw(null);
+      return;
     }
-    idx++;
+    const [u, v] = kEdges[kIdx];
+    const pu = kFind(u), pv = kFind(v);
+    if (pu !== pv) {
+      kParent[pu] = pv;
+      const key = Math.min(u,v) + ',' + Math.max(u,v);
+      kWalls.delete(key);
+      kruskalDraw([u, v]);
+    }
+    kIdx++;
   }, kruskalDelay);
 }
 kruskalReset();
 
 // ==========================================
-//  STEP 6: Solution demo
+//  STEP 5: Solution (persistent maze)
 // ==========================================
-function solutionAnimate(mode) {
-  const cont = document.getElementById('solutionDemo');
-  cont.innerHTML = '';
+let solMaze = null;
+
+function solRegen() {
   const m = new RectangularMaze(6, 5);
   m.initializeGraph();
   const algo = new Kruskal((Math.random() * 0xffffffff) >>> 0);
   m.generateMaze(algo);
-
-  if (mode === 'regen') mode = 'maze';
-
-  const showSol = mode === 'solve';
-  const svg = m.renderSVG(showSol, 'neon');
-  cont.appendChild(svg);
+  solMaze = m;
+  solShow(false);
 }
-solutionAnimate('maze');
+
+function solShow(showSolution) {
+  setActiveBtn('solBtn', showSolution ? 2 : 1);
+  if (!solMaze) solRegen();
+  const cont = document.getElementById('solutionDemo');
+  cont.innerHTML = '';
+  cont.appendChild(solMaze.renderSVG(showSolution, 'neon'));
+}
+solRegen();
 
 // ==========================================
-//  STEP 7: Hexagonal maze demo
+//  STEP 6: Hex sector SVG diagram
 // ==========================================
-function hexDemoShow(mode) {
+(function(){
+  const svg = document.getElementById('sectorDiagram');
+  const NS = 'http://www.w3.org/2000/svg';
+  const R = 120;
+  const colors = ['#e94560','#ff8800','#ffcc00','#4ecdc4','#82aaff','#c792ea'];
+  const labels = ['S0','S1','S2','S3','S4','S5'];
+
+  for (let i = 0; i < 6; i++) {
+    const a1 = (i * 60 - 90) * Math.PI / 180;
+    const a2 = ((i+1) * 60 - 90) * Math.PI / 180;
+    const x1 = R * Math.cos(a1), y1 = R * Math.sin(a1);
+    const x2 = R * Math.cos(a2), y2 = R * Math.sin(a2);
+
+    // Triangle sector
+    const poly = document.createElementNS(NS, 'polygon');
+    poly.setAttribute('points', `0,0 ${x1},${y1} ${x2},${y2}`);
+    poly.setAttribute('fill', colors[i]); poly.setAttribute('fill-opacity', '0.15');
+    poly.setAttribute('stroke', colors[i]); poly.setAttribute('stroke-width', '2');
+    svg.appendChild(poly);
+
+    // Label
+    const mx = (x1 + x2) / 2 * 0.55, my = (y1 + y2) / 2 * 0.55;
+    const txt = document.createElementNS(NS, 'text');
+    txt.setAttribute('x', mx); txt.setAttribute('y', my + 4);
+    txt.setAttribute('text-anchor', 'middle'); txt.setAttribute('fill', colors[i]);
+    txt.setAttribute('font-size', '14'); txt.setAttribute('font-weight', 'bold');
+    txt.setAttribute('font-family', 'sans-serif');
+    txt.textContent = labels[i];
+    svg.appendChild(txt);
+
+    // Small triangles inside to suggest cells
+    const mid = (a1 + a2) / 2;
+    for (let d = 0.35; d <= 0.7; d += 0.35) {
+      const cx = R * d * Math.cos(mid), cy = R * d * Math.sin(mid);
+      const s = 8;
+      const tri = document.createElementNS(NS, 'polygon');
+      const p1x = cx + s * Math.cos(mid - Math.PI/2);
+      const p1y = cy + s * Math.sin(mid - Math.PI/2);
+      const p2x = cx + s * Math.cos(mid + Math.PI/6);
+      const p2y = cy + s * Math.sin(mid + Math.PI/6);
+      const p3x = cx + s * Math.cos(mid + 5*Math.PI/6);
+      const p3y = cy + s * Math.sin(mid + 5*Math.PI/6);
+      tri.setAttribute('points', `${p1x},${p1y} ${p2x},${p2y} ${p3x},${p3y}`);
+      tri.setAttribute('fill', 'none'); tri.setAttribute('stroke', colors[i]);
+      tri.setAttribute('stroke-width', '0.8'); tri.setAttribute('stroke-opacity', '0.5');
+      svg.appendChild(tri);
+    }
+  }
+  // Center dot
+  const circ = document.createElementNS(NS, 'circle');
+  circ.setAttribute('cx','0'); circ.setAttribute('cy','0'); circ.setAttribute('r','4');
+  circ.setAttribute('fill','#fff');
+  svg.appendChild(circ);
+})();
+
+// ==========================================
+//  STEP 6: Hex demo (persistent maze)
+// ==========================================
+let hexMaze = null, hexSeed = 0;
+
+function hexRegen() {
+  hexSeed = (Math.random() * 0xffffffff) >>> 0;
+  hexMaze = null;
+  hexShow('grid');
+}
+
+function hexShow(mode) {
+  setActiveBtn('hexBtn', mode === 'grid' ? 1 : mode === 'maze' ? 2 : 3);
   const cont = document.getElementById('hexDemo');
   cont.innerHTML = '';
-  const m = new HexagonalMaze(3);
-  m.initializeGraph();
 
   if (mode === 'grid') {
-    // Show the hex grid with all walls
-    const svg = m.renderSVG(false, 'neon');
-    cont.appendChild(svg);
+    const m = new HexagonalMaze(3);
+    m.initializeGraph();
+    cont.appendChild(m.renderSVG(false, 'neon'));
     return;
   }
 
-  const algo = new Kruskal((Math.random() * 0xffffffff) >>> 0);
-  m.generateMaze(algo);
-  const showSol = mode === 'solve';
-  const svg = m.renderSVG(showSol, 'neon');
-  cont.appendChild(svg);
+  if (!hexMaze) {
+    hexMaze = new HexagonalMaze(3);
+    hexMaze.initializeGraph();
+    const algo = new Kruskal(hexSeed);
+    hexMaze.generateMaze(algo);
+  }
+  cont.appendChild(hexMaze.renderSVG(mode === 'solve', 'neon'));
 }
-hexDemoShow('grid');
+hexRegen();
+hexShow('grid');
 
 // ==========================================
-//  STEP 9: Playground
+//  STEP 7: Playground
 // ==========================================
 function playgroundUpdate() {
   const cont = document.getElementById('playgroundMaze');
@@ -908,8 +800,6 @@ function playgroundUpdate() {
   const size = parseInt(document.getElementById('pgSize').value);
   const themeName = document.getElementById('pgTheme').value;
   const showSol = document.getElementById('pgSolution').checked;
-  const seed = (Math.random() * 0xffffffff) >>> 0;
-
   let m;
   if (shape === 'hex') {
     m = new HexagonalMaze(size);
@@ -918,10 +808,8 @@ function playgroundUpdate() {
     m = new RectangularMaze(s, s);
   }
   m.initializeGraph();
-  const algo = new Kruskal(seed);
-  m.generateMaze(algo);
-  const svg = m.renderSVG(showSol, themeName);
-  cont.appendChild(svg);
+  m.generateMaze(new Kruskal((Math.random() * 0xffffffff) >>> 0));
+  cont.appendChild(m.renderSVG(showSol, themeName));
 }
 playgroundUpdate();
 </script>
